@@ -1,0 +1,4 @@
+id;name;refined.id;mode;uiClasses;tag;tagUiClasses
+service:build;Build;;LINK;fa fa-cogs;technical;fa fa-industry
+service:build:jenkins;Jenkins;service:build;LINK;;;
+service:build:jenkins:bpr;Jenkins BPR;service:build:jenkins;LINK;;;

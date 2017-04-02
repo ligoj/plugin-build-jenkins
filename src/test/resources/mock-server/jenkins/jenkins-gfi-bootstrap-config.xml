@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hudson>
+	<job>
+		<displayName>Gfi - Bootstrap</displayName>
+		<description>Any description</description>
+		<name>gfi-bootstrap</name>
+		<color>yellow</color>
+	</job>
+</hudson>

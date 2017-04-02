@@ -1,0 +1,119 @@
+
+<?xml version='1.0' encoding='UTF-8'?>
+<maven2-moduleset plugin="maven-plugin@2.14">
+  <actions/>
+  <description></description>
+  <displayName>Template - Projet Maven</displayName>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.security.AuthorizationMatrixProperty>
+      <permission>hudson.model.Item.Cancel:gfi-saas</permission>
+      <permission>hudson.model.Item.Cancel:alocquet</permission>
+      <permission>hudson.model.Item.Read:gfi-saas</permission>
+      <permission>hudson.model.Item.Read:alocquet</permission>
+      <permission>hudson.model.Item.Workspace:gfi-saas</permission>
+      <permission>hudson.model.Item.Workspace:alocquet</permission>
+      <permission>hudson.model.Item.Build:gfi-saas</permission>
+      <permission>hudson.model.Item.Build:alocquet</permission>
+      <permission>hudson.scm.SCM.Tag:gfi-saas</permission>
+      <permission>hudson.scm.SCM.Tag:alocquet</permission>
+      <permission>hudson.model.Item.Configure:gfi-saas</permission>
+      <permission>hudson.model.Item.Configure:alocquet</permission>
+      <permission>hudson.model.Item.Discover:gfi-saas</permission>
+      <permission>hudson.model.Item.Discover:alocquet</permission>
+      <permission>hudson.model.Item.ViewStatus:gfi-saas</permission>
+      <permission>hudson.model.Item.ViewStatus:alocquet</permission>
+      <permission>hudson.model.Run.Update:gfi-saas</permission>
+      <permission>hudson.model.Run.Update:alocquet</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.4.2">
+      <gitLabConnection>https://delivery.gfi.fr/gitlab/</gitLabConnection>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+    <org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty plugin="gitlab-logo@1.0.1">
+      <repositoryName></repositoryName>
+    </org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>5</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <de.pellepelster.jenkins.walldisplay.WallDisplayJobProperty plugin="jenkinswalldisplay@0.6.30"/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM" plugin="subversion@2.7.1">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://delivery.gfi.fr/svn/gfi-saas/trunk</remote>
+        <credentialsId>4901f073-08dc-4c32-8916-b4e4a8472c99</credentialsId>
+        <local>.</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>true</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateWithRevertUpdater"/>
+    <ignoreDirPropChanges>false</ignoreDirPropChanges>
+    <filterChangelog>false</filterChangelog>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>true</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <jdk>jdk8</jdk>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>H 0 * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <rootModule>
+    <groupId>fr.gfi</groupId>
+    <artifactId>saas-admin</artifactId>
+  </rootModule>
+  <goals>clean package $SONAR_MAVEN_GOAL $SONAR_EXTRA_PROPS -e -Pjacoco -Djacoco.includes=fr.gfi.saas.*</goals>
+  <mavenName>maven</mavenName>
+  <aggregatorStyleBuild>true</aggregatorStyleBuild>
+  <incrementalBuild>false</incrementalBuild>
+  <ignoreUpstremChanges>true</ignoreUpstremChanges>
+  <ignoreUnsuccessfulUpstreams>false</ignoreUnsuccessfulUpstreams>
+  <archivingDisabled>true</archivingDisabled>
+  <siteArchivingDisabled>true</siteArchivingDisabled>
+  <fingerprintingDisabled>true</fingerprintingDisabled>
+  <resolveDependencies>false</resolveDependencies>
+  <processPlugins>false</processPlugins>
+  <mavenValidationLevel>-1</mavenValidationLevel>
+  <runHeadless>false</runHeadless>
+  <disableTriggerDownstreamProjects>true</disableTriggerDownstreamProjects>
+  <settings class="jenkins.mvn.DefaultSettingsProvider"/>
+  <globalSettings class="jenkins.mvn.DefaultGlobalSettingsProvider"/>
+  <reporters>
+    <hudson.maven.reporters.MavenMailer>
+      <recipients>responsable.projet@gfi.fr</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+      <perModuleEmail>false</perModuleEmail>
+    </hudson.maven.reporters.MavenMailer>
+  </reporters>
+  <publishers>
+    <com.marvelution.jenkins.plugins.jira.notifier.JIRABuildNotifier plugin="jenkins-jira-plugin@1.4.7">
+      <postUrl>https://delivery.gfi.fr/jira/rest/jenkins/1.0/build/395</postUrl>
+    </com.marvelution.jenkins.plugins.jira.notifier.JIRABuildNotifier>
+  </publishers>
+  <buildWrappers/>
+  <prebuilders/>
+  <postbuilders/>
+  <runPostStepsIfResult>
+    <name>UNSTABLE</name>
+    <ordinal>1</ordinal>
+    <color>YELLOW</color>
+    <completeBuild>true</completeBuild>
+  </runPostStepsIfResult>
+</maven2-moduleset>

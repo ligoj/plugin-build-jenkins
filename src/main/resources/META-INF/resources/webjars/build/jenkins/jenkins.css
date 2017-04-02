@@ -1,0 +1,9 @@
+.masonry-container .node.service-build-jenkins.mode-th-list table.subscriptions th.features {
+	width: 52px;
+}
+.masonry-container .node.service-build-jenkins.mode-th-large table.subscriptions th.features {
+	width: 50px;
+}
+.masonry-container .node.service-build-jenkins table.subscriptions th.features {
+	width: 45px;
+}

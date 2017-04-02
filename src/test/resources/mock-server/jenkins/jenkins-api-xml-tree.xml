@@ -1,0 +1,573 @@
+<hudson>
+	<job>
+		<description></description>
+		<displayName>Acoss - KPI</displayName>
+		<name>acoss-kpi</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Acoss - KPI (deploy)</displayName>
+		<name>acoss-kpi-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Acoss - KPI (release)</displayName>
+		<name>acoss-kpi-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>[admin] New Svn Repository</displayName>
+		<name>admin-new-svn-repository</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>agefos-pme-reshumpme</displayName>
+		<name>agefos-pme-reshumpme</name>
+	</job>
+	<job>
+		<description>ASIP Santé
+			Le Référentiel des Acteurs Santé Sociaux est le vecteur de publication du Répertoire Partagé des Professionnels de Santé (RPPS).
+			Il permet de mettre à disposition des utilisateurs autorisés l’ensemble des données de description des professionnels de santé enregistrés dans le RPPS
+			(données d’identité, exercice professionnel, situations d’exercice…) et les données d’identification des établissements dans lesquels ces professionnels de santé exercent.
+			Le RASS est le répertoire de l’espace de confiance de l’ASIP Santé (cartes CPx, MSS, …).
+		</description>
+		<displayName>ASIP Santé - Référentiel des Acteurs Santé Sociaux</displayName>
+		<name>asip-rass</name>
+	</job>
+	<job>
+		<description>ASIP Santé
+			Le Référentiel des Acteurs Santé Sociaux est le vecteur de publication du Répertoire Partagé des Professionnels de Santé (RPPS).
+			Il permet de mettre à disposition des utilisateurs autorisés l’ensemble des données de description des professionnels de santé enregistrés dans le RPPS
+			(données d’identité, exercice professionnel, situations d’exercice…) et les données d’identification des établissements dans lesquels ces professionnels de santé exercent.
+			Le RASS est le répertoire de l’espace de confiance de l’ASIP Santé (cartes CPx, MSS, …).
+		</description>
+		<displayName>ASIP Santé - Référentiel des Acteurs Santé Sociaux - Alimentation</displayName>
+		<name>asip-rass-plsql</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>asip-rassv2</displayName>
+		<name>asip-rassv2</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>asip-rassv2-release</displayName>
+		<name>asip-rassv2-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Cardif - Hera</displayName>
+		<name>bnp-hera</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>BNP - Web Corporate</displayName>
+		<name>bnp-wce</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Casino - Portail</displayName>
+		<name>casino-portail</name>
+	</job>
+	<job>
+		<description>"Phoenix" project</description>
+		<displayName>chronotime-phoenix</displayName>
+		<name>chronotime-phoenix</name>
+	</job>
+	<job>
+		<description>"Phoenix" applet project</description>
+		<displayName>chronotime-phoenix-applet</displayName>
+		<name>chronotime-phoenix-applet</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Cng - Ecni</displayName>
+		<name>cng-ecni</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Cng - Theia</displayName>
+		<name>cng-theia</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Conseil Regional Bourgogne - PAQ</displayName>
+		<name>crb-paq</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Effia - Sesame</displayName>
+		<name>effia-sesame</name>
+	</job>
+	<job>
+		<description>Generic job scanning and uploading analysis to SSC.
+			Huge and CP memory usage
+		</description>
+		<displayName>Fortify - Scan &amp; Upload</displayName>
+		<name>fortify-scan-upload</name>
+	</job>
+	<job>
+		<description>FranceAgriMer :Rrestructuration du vignoble</description>
+		<displayName>France AgriMer - RS</displayName>
+		<name>france-agrimer-rs</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Bootstrap</displayName>
+		<name>gfi-bootstrap</name>
+	</job>
+	<job>
+		<description>&lt;img class="meme" src="http://apimeme.com/meme?meme=10 Guy&amp;top=I+don%27t+always+commit&amp;bottom=But+when+I+do%2C+I+win" /&gt;</description>
+		<displayName>Gfi - Bootstrap (release)</displayName>
+		<name>gfi-bootstrap-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - BPR Affect</displayName>
+		<name>gfi-bpr</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Commerce</displayName>
+		<name>gfi-bpr-commerce</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Commerce (deploy)</displayName>
+		<name>gfi-bpr-commerce-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Commerce (release)</displayName>
+		<name>gfi-bpr-commerce-release</name>
+	</job>
+	<job>
+		<description>CHRONOTIME - Projet SSE</description>
+		<displayName>Gfi - Chronotime - SSE</displayName>
+		<name>gfi-chronotime-sse</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Chronotime - Web</displayName>
+		<name>gfi-chronotime-web</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - DDL Patcher</displayName>
+		<name>gfi-ddl-atcher</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Exchange</displayName>
+		<name>gfi-exchange</name>
+	</job>
+	<job>
+		<description>Forge pour Maven : parents, plugin configurations</description>
+		<displayName>Gfi - Forge</displayName>
+		<name>gfi-forge</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Forge - PHP</displayName>
+		<name>gfi-forge-php</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Forge Test Deploy</displayName>
+		<name>gfi-forge-test-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - JEE Framework GWT</displayName>
+		<name>gfi-framework-gwt</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - JEE Framework 15</displayName>
+		<name>gfi-framework-jee-15</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Framework RIA</displayName>
+		<name>gfi-framework-ria</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Jndi Wrapper</displayName>
+		<name>gfi-jndi-wrapper</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Pegase3</displayName>
+		<name>gfi-pegase3</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Report</displayName>
+		<name>gfi-report</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - SaaS</displayName>
+		<name>gfi-saas</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - SaaS (deploy)</displayName>
+		<name>gfi-saas-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - SaaS (release)</displayName>
+		<name>gfi-saas-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Tsung</displayName>
+		<name>gfi-tsung</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Vigireport</displayName>
+		<name>gfi-vigireport</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Welcome Todo</displayName>
+		<name>gfi-welcome-todolist</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gips - BPS</displayName>
+		<name>gips-bps</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Groupama - KPI</displayName>
+		<name>groupama-kpi</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Groupama - KPI (deploy)</displayName>
+		<name>groupama-kpi-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Groupama - KPI (release)</displayName>
+		<name>groupama-kpi-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>HAS - Siam2</displayName>
+		<name>has-siam2</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>HAS - Siam2 - Livraison</displayName>
+		<name>has-siam2-livraison</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>iPhone - POC</displayName>
+		<name>iPhone - POC</name>
+	</job>
+	<job>
+		<description>Institut Régional d'Administration - Concours</description>
+		<displayName>IRA - Concours</displayName>
+		<name>ira-concours</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>iris-nouvel-arrivant</displayName>
+		<name>iris-nouvel-arrivant</name>
+	</job>
+	<job>
+		<description>LA POSTE - Réexpédition en ligne Entreprise</description>
+		<displayName>La Poste - Reexpedition en ligne Entreprise</displayName>
+		<name>laposte-en-ligne-entreprise</name>
+	</job>
+	<job>
+		<description>LA POSTE - Réexpédition en ligne Personnel</description>
+		<displayName>La Poste - Reexpedition en ligne Personnel</displayName>
+		<name>laposte-en-ligne-personnel</name>
+	</job>
+	<job>
+		<description>LA POSTE - Gestion Réexpédition</description>
+		<displayName>La Poste - Gestion Reexpedition</displayName>
+		<name>laposte-gestion-reexpedition</name>
+	</job>
+	<job>
+		<description>LA POSTE - Réexpédition Autorisation</description>
+		<displayName>La Poste - Import Export BNCA</displayName>
+		<name>laposte-import-export-bnca</name>
+	</job>
+	<job>
+		<description>LA POSTE - Ma Nouvelle Adresse</description>
+		<displayName>La Poste - Ma Nouvelle Adresse</displayName>
+		<name>laposte-ma-nouvelle-adresse</name>
+	</job>
+	<job>
+		<description>LA POSTE - Réexpédition Autorisation</description>
+		<displayName>La Poste - Reexpedition Autorisation</displayName>
+		<name>laposte-reexpedition-autorisation</name>
+	</job>
+	<job>
+		<description>LA POSTE - Util Eboutique</description>
+		<displayName>La Poste - Util Eboutique</displayName>
+		<name>laposte-util-eboutique</name>
+	</job>
+	<job>
+		<description>MEDEE - ADS</description>
+		<displayName>Medee - ADS</displayName>
+		<name>medee-ads</name>
+	</job>
+	<job>
+		<description>Job de qualité continue.</description>
+		<displayName>Mgi - Ci5</displayName>
+		<name>mgi-ci5</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Mgi - Ci5 (deploy)</displayName>
+		<name>mgi-ci5-deploy</name>
+	</job>
+	<job>
+		<description>Tag d'une version de l'application (release)</description>
+		<displayName>Mgi - Ci5 (release)</displayName>
+		<name>mgi-ci5-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Beccaria</displayName>
+		<name>ministere-justice-beccaria</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Cassiopée</displayName>
+		<name>ministere-justice-cassiopee</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Cassiopée (Securité)</displayName>
+		<name>ministere-justice-cassiopee-securite</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Roméo</displayName>
+		<name>ministere-justice-romeo</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Roméo (deploy)</displayName>
+		<name>ministere-justice-romeo-deploy</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Justice - Roméo (release)</displayName>
+		<name>ministere-justice-romeo-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Santé - Sara</displayName>
+		<name>ministere-sante-sara</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Ministère Santé - Sara (livrable)</displayName>
+		<name>ministere-sante-sara-release</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Nextgen - Cliente</displayName>
+		<name>nextgen-cliente</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Nextgen - Nera</displayName>
+		<name>nextgen-nera</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Nextgen - Rest API</displayName>
+		<name>nextgen-restapi</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Nextgen - Rest Client</displayName>
+		<name>nextgen-restclient</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - Aravis</displayName>
+		<name>orange-aravis</name>
+	</job>
+	<job>
+		<description>Projet desactivé en attendant la ligne OBS.
+			Pour le moment, utiliser le build &lt;a href="https://vigitracker.gfi.fr/jenkins/job/orange-aravis-recette/"&gt;vigitracker.gfi.fr&lt;/a&gt;</description>
+		<displayName>Orange - Aravis (Recette)</displayName>
+		<name>orange-aravis-recette</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - Cassiopée</displayName>
+		<name>orange-cassiopee</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - FAF</displayName>
+		<name>orange-faf</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - GID</displayName>
+		<name>orange-gid</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - MRC</displayName>
+		<name>orange-mrc</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - Nosventes</displayName>
+		<name>orange-nosventes</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - Num Urgence</displayName>
+		<name>orange-num-urgence</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - ODF</displayName>
+		<name>orange-odf</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Orange - Scor</displayName>
+		<name>orange-scor</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>PPK - Portail</displayName>
+		<name>ppk-portail</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Royal Air Maroc - Automatisation Traitement</displayName>
+		<name>ram-automatisation-traitement</name>
+	</job>
+	<job>
+		<description>Royal Air Maroc - Histo</description>
+		<displayName>Royal Air Maroc - Histo</displayName>
+		<name>ram-histo</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Royal Air Maroc - Incentive Agent</displayName>
+		<name>ram-incentive-agent</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Royal Air Maroc - Main Courante</displayName>
+		<name>ram-mc</name>
+	</job>
+	<job>
+		<description>TMA_OCTOPUS@gfi.fr</description>
+		<displayName>Sncf - Octopus</displayName>
+		<name>sncf-octopus</name>
+	</job>
+	<job>
+		<description>Job de déploiement sur Tomcat</description>
+		<displayName>Sncf - Octopus deploy-103-released</displayName>
+		<name>sncf-octopus-deploy-103-released</name>
+	</job>
+	<job>
+		<description>Job de déploiement sur Tomcat Instance 163</description>
+		<displayName>Sncf - Octopus deploy-163-released</displayName>
+		<name>sncf-octopus-deploy-163-released</name>
+	</job>
+	<job>
+		<description>Job de déploiement sur le serveur TOMCAT de la VM 164</description>
+		<displayName>Sncf - Octopus deploy-164-released</displayName>
+		<name>sncf-octopus-deploy-164-released</name>
+	</job>
+	<job>
+		<description>TMA_OCTOPUS@gfi.fr</description>
+		<displayName>Sncf - Octopus Released</displayName>
+		<name>sncf-octopus-released</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Sonar - Build Stability</displayName>
+		<name>sonar-build-stability</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Sonar - Jacoco Listeners</displayName>
+		<name>sonar-jacoco-listeners</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Gfi - Sonar - Test cases</displayName>
+		<name>sonar-test-cases</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Square Connnexion - BO Tootici</displayName>
+		<name>square-connexion-bo-tootici</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Square Connnexion - Bons d'achat</displayName>
+		<name>square-connexion-bon-dachat</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Stime - Planification</displayName>
+		<name>stime-planification</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>test-fortify</displayName>
+		<name>test-fortify</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>test-fortify-maven</displayName>
+		<name>test-fortify-maven</name>
+	</job>
+	<job>
+		<displayName>test-multi</displayName>
+		<name>test-multi</name>
+	</job>
+	<job>
+		<displayName>test-multi2</displayName>
+		<name>test-multi2</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>test2</displayName>
+		<name>test2</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>TNT - Ramassage</displayName>
+		<name>tnt-ramassage</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Toyota - A2D</displayName>
+		<name>toyota-a2d</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Toyota - NPPS</displayName>
+		<name>toyota-npps</name>
+	</job>
+	<job>
+		<description></description>
+		<displayName>Toyota - NPPS (Branch)</displayName>
+		<name>toyota-npps-branch</name>
+	</job>
+</hudson>
