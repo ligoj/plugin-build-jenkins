@@ -76,8 +76,8 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	/**
-	 * Return the subscription identifier of MDA. Assumes there is only one
-	 * subscription for a service.
+	 * Return the subscription identifier of the given project. Assumes there is
+	 * only one subscription for a service.
 	 */
 	protected int getSubscription(final String project) {
 		return getSubscription(project, BuildResource.SERVICE_KEY);
@@ -448,7 +448,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	@Test(expected = RuntimeException.class)
 	public void buildInvalidUrl() throws Exception {
 		@SuppressWarnings("unchecked")
-		Map<String, String> map = (Map<String, String>)Mockito.mock(Map.class);
+		Map<String, String> map = (Map<String, String>) Mockito.mock(Map.class);
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_TOKEN)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_URL)).thenThrow(new RuntimeException());
