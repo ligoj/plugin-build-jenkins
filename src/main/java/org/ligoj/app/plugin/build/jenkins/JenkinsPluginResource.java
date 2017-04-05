@@ -175,7 +175,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 		final String jobXml = getResource(parameters,
 				"api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='" + encode(job)
 						+ "']&wrapper=hudson");
-		if (jobXml == null || jobXml.equals("<hudson/>")) {
+		if (jobXml == null || "<hudson/>".equals(jobXml)) {
 			// Invalid couple PKEY and id
 			throw new ValidationJsonException(PARAMETER_JOB, "jenkins-job", job);
 		}
