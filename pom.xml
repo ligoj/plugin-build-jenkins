@@ -10,7 +10,7 @@
 
 	<groupId>org.ligoj.plugin</groupId>
 	<artifactId>plugin-build-jenkins</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<packaging>jar</packaging>
 	<name>Ligoj - Plugin Build - Jenkins</name>
 
@@ -18,7 +18,7 @@
 		<dependency>
 			<groupId>org.ligoj.plugin</groupId>
 			<artifactId>plugin-build</artifactId>
-			<version>0.0.1T</version>
+			<version>0.0.1</version>
 		</dependency>
 	</dependencies>
 </project>
