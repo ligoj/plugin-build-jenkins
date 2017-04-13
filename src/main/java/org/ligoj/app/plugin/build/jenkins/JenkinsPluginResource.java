@@ -61,7 +61,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 	private String publicServer;
 
 	@Autowired
-	protected IamProvider iamProvider;
+	protected IamProvider[] iamProvider;
 
 	/**
 	 * Plug-in key.
@@ -126,7 +126,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 
 		// update template
 		final Project project = subscriptionRepository.findOneExpected(subscription).getProject();
-		final UserOrg teamLeader = iamProvider.getConfiguration().getUserRepository().findById(project.getTeamLeader());
+		final UserOrg teamLeader = iamProvider[0].getConfiguration().getUserRepository().findById(project.getTeamLeader());
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
 				.replaceAll("gfi-saas", project.getPkey())
@@ -413,14 +413,14 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 	}
 
 	@Override
-	public boolean checkStatus(final String node, final Map<String, String> parameters) throws Exception {
+	public boolean checkStatus(final Map<String, String> parameters) throws Exception {
 		// Status is UP <=> Administration access is UP
 		validateAdminAccess(parameters);
 		return true;
 	}
 
 	@Override
-	public SubscriptionStatusWithData checkSubscriptionStatus(final String node, final Map<String, String> parameters)
+	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
 			throws Exception {
 		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
