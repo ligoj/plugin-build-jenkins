@@ -332,8 +332,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 	 *            The optional view URL.
 	 * @return job names matching the criteria.
 	 */
-	public List<Job> findAllByName(@PathParam("node") final String node, @PathParam("criteria") final String criteria,
-			final String view) throws Exception { // NOSONAR Too many exceptions
+	private List<Job> findAllByName(final String node, final String criteria, final String view) throws Exception { // NOSONAR Too many exceptions
 
 		// Prepare the context, an ordered set of jobs
 		final Format format = new NormalizeFormat();
