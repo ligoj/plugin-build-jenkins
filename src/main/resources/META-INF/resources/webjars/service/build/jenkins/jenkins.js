@@ -69,7 +69,7 @@ define(function () {
 		},
 
 		configureSubscriptionParameters: function (configuration) {
-			if (current.$super('isSubscriptionCreateMode')()) {
+			if (configuration.mode === 'create') {
 				current.$super('registerXServiceSelect2')(configuration, 'service:build:jenkins:template-job', 'service/build/jenkins/template/');
 				configuration.validators['service:build:jenkins:job'] = current.validateJobCreateMode;
 			} else {
@@ -97,7 +97,7 @@ define(function () {
 			validationManager.addMessage($input, null, [], null, 'fa fa-refresh fa-spin');
 			$.ajax({
 				dataType: 'json',
-				url: REST_PATH + 'service/build/jenkins/' + current.$parent.$parent.getSelectedNode() + '/job/' + jobName,
+				url: REST_PATH + 'service/build/jenkins/' + current.$super('getSelectedNode')() + '/job/' + jobName,
 				type: 'GET',
 				global: false,
 				success: function () {

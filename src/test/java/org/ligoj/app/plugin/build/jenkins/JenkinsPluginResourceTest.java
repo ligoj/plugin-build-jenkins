@@ -31,7 +31,7 @@ import org.ligoj.app.model.ParameterValue;
 import org.ligoj.app.model.Project;
 import org.ligoj.app.model.Subscription;
 import org.ligoj.app.plugin.build.BuildResource;
-import org.ligoj.app.resource.node.NodeResource;
+import org.ligoj.app.resource.node.ParameterValueResource;
 import org.ligoj.app.resource.subscription.SubscriptionResource;
 import org.ligoj.bootstrap.core.resource.BusinessException;
 import org.ligoj.bootstrap.core.validation.ValidationJsonException;
@@ -57,7 +57,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	private JenkinsPluginResource resource;
 
 	@Autowired
-	private NodeResource nodeResource;
+	private ParameterValueResource pvResource;
 
 	@Autowired
 	private SubscriptionResource subscriptionResource;
@@ -154,7 +154,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 				.willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		httpServer.start();
 
-		final Map<String, String> parameters = nodeResource.getParametersAsMap("service:build:jenkins:bpr");
+		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
 		parameters.put(JenkinsPluginResource.PARAMETER_JOB, "gfi-bootstrap");
 		resource.validateJob(parameters);
 	}
@@ -189,7 +189,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		addJobAccess();
 		httpServer.start();
 
-		final Map<String, String> parameters = nodeResource.getParametersAsMap("service:build:jenkins:bpr");
+		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
 		parameters.put(JenkinsPluginResource.PARAMETER_JOB, "gfi-bootstrap");
 		checkJob(resource.validateJob(parameters), false);
 	}
@@ -204,7 +204,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 										StandardCharsets.UTF_8))));
 		httpServer.start();
 
-		final Map<String, String> parameters = nodeResource.getParametersAsMap("service:build:jenkins:bpr");
+		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
 		parameters.put(JenkinsPluginResource.PARAMETER_JOB, "gfi-bootstrap");
 		final Job job = resource.validateJob(parameters);
 		Assert.assertEquals("gfi-bootstrap", job.getId());
@@ -219,7 +219,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		addJobAccessBuilding();
 		httpServer.start();
 
-		final Map<String, String> parameters = nodeResource.getParametersAsMap("service:build:jenkins:bpr");
+		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
 		parameters.put(JenkinsPluginResource.PARAMETER_JOB, "gfi-bootstrap");
 		checkJob(resource.validateJob(parameters), true);
 	}
@@ -281,7 +281,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.start();
 
 		final String version = resource
-				.validateAdminAccess(nodeResource.getParametersAsMap("service:build:jenkins:bpr"));
+				.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
 		Assert.assertEquals("1.574", version);
 	}
 
@@ -300,7 +300,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		resource.validateAdminAccess(nodeResource.getParametersAsMap("service:build:jenkins:bpr"));
+		resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
 	}
 
 	@Test
@@ -311,7 +311,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		resource.validateAdminAccess(nodeResource.getParametersAsMap("service:build:jenkins:bpr"));
+		resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
 	}
 
 	@Test
@@ -323,7 +323,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 				.willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		resource.validateAdminAccess(nodeResource.getParametersAsMap("service:build:jenkins:bpr"));
+		resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
 	}
 
 	@Test

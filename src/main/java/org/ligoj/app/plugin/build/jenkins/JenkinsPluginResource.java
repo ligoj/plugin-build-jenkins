@@ -315,7 +315,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
 			throws MalformedURLException, URISyntaxException {
 		// Prepare the context, an ordered set of jobs
-		final Map<String, String> parameters = nodeResource.getParametersAsMap(node);
+		final Map<String, String> parameters = pvResource.getNodeParameters(node);
 		parameters.put(PARAMETER_JOB, id);
 		return validateJob(parameters);
 	}
@@ -337,7 +337,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 		// Prepare the context, an ordered set of jobs
 		final Format format = new NormalizeFormat();
 		final String formatCriteria = format.format(criteria);
-		final Map<String, String> parameters = nodeResource.getParametersAsMap(node);
+		final Map<String, String> parameters = pvResource.getNodeParameters(node);
 
 		// Get the jobs and parse them
 		final String url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
