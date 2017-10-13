@@ -23,7 +23,7 @@ define(function () {
 		},
 
 		initialize: function () {
-			current.$super('$view').on('click', '.service-build-jenkins-build', current.serviceBuildJenkinsBuild);
+			current.$super('$view').off('click.service-build-jenkins-build').on('click.service-build-jenkins-build', '.service-build-jenkins-build', current.serviceBuildJenkinsBuild);
 		},
 
 		/**
