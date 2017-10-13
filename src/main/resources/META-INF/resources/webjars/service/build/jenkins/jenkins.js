@@ -17,9 +17,9 @@ define(function () {
 		 */
 		jobStatusTypo: {
 			blue: 'fa fa-circle',
-			red: 'fa fa-circle',
+			red: 'fa fa-exclamation-circle',
 			disabled: 'fa fa-ban',
-			yellow: 'fa fa-circle'
+			yellow: 'fa fa-exclamation-triangle'
 		},
 
 		initialize: function () {
