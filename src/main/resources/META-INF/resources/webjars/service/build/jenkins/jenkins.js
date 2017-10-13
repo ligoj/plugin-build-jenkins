@@ -64,7 +64,7 @@ define(function () {
 		renderDetailsFeatures: function (subscription) {
 			var job = subscription.data.job;
 			var title = (current.$messages['service:build:jenkins:status-' + job.status] || job.status) + (job.building ? ' (' + current.$messages['service:build:jenkins:building'] + ')' : '');
-			var clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' ' + (job.building ? 'fa-refresh fa-spin' : current.jobStatusTypo[job.status] || 'fa fa-circle');
+			var clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' ' + (job.building ? 'fa fa-refresh fa-spin' : current.jobStatusTypo[job.status] || 'fa fa-circle');
 			return '<i data-toggle="tooltip" title="' + title + '" class="' + clazz + '"></i>';
 		},
 
