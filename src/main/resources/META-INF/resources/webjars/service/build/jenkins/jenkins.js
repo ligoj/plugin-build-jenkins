@@ -49,11 +49,8 @@ define(function () {
 		 */
 		renderDetailsKey: function (subscription) {
 			return current.$super('generateCarousel')(subscription, [
-				[
-					'service:build:jenkins:job', current.renderKey(subscription)
-				],
-				[
-					'name', subscription.data.job.name || subscription.parameters['service:build:jenkins:job']
+				['service:build:jenkins:job', current.renderKey(subscription)],
+				['name', subscription.data.job.name || subscription.parameters['service:build:jenkins:job']
 				]
 			], 1);
 		},
@@ -123,12 +120,17 @@ define(function () {
 		serviceBuildJenkinsBuild: function () {
 			var subscription = $(this).closest('tr').attr('data-id');
 			var job = current.$super('subscriptions').fnGetData($(this).closest('tr')[0]);
+			var $button = $(this);
+			$button.attr('disabled', 'disabled').find('.fa').addClass('faa-flash animated');
 			$.ajax({
 				dataType: 'json',
 				url: REST_PATH + 'service/build/jenkins/build/' + subscription,
 				type: 'POST',
 				success: function () {
 					notifyManager.notify(Handlebars.compile(current.$messages['jenkins-build-job-success'])((job.parameters && job.parameters['service:build:jenkins:job']) || subscription));
+				},
+				complete: function () {
+					$button.removeAttr('disabled').find('.fa').removeClass('faa-flash animated');
 				}
 			});
 		}
