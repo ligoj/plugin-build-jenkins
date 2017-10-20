@@ -9,6 +9,7 @@ define({
 	'service:build:jenkins:status-disabled': 'Inconnu',
 	'service:build:jenkins:status-red': 'Echec',
 	'service:build:jenkins:building': 'En construction',
+	'service:build:jenkins:template-job': 'Modèle de tâche',
 	'jenkins-build-job-success': 'Lancement du job {{this}} effectué',
 	'error': {
 		'jenkins-job': 'Tâche non trouvée',

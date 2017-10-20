@@ -10,6 +10,7 @@ define({
 		'service:build:jenkins:status-disabled': 'Unknown',
 		'service:build:jenkins:status-red': 'Failure',
 		'service:build:jenkins:building': 'Building',
+		'service:build:jenkins:template-job': 'Template job',
 		'jenkins-build-job-success': 'Launching the job {{this}} succeed',
 		'error': {
 			'jenkins-job': 'Job not found',
