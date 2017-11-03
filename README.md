@@ -8,7 +8,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/ligoj/plugin-build-jenkins/badge.svg?branch=master)](https://coveralls.io/github/ligoj/plugin-build-jenkins?branch=master)
 [![Dependency Status](https://www.versioneye.com/user/projects/58caeda8dcaf9e0041b5b978/badge.svg?style=flat)](https://www.versioneye.com/user/projects/58caeda8dcaf9e0041b5b978)
 [![Quality Gate](https://sonarcloud.io/api/badges/gate?key=org.ligoj.plugin:plugin-build-jenkins)](https://sonarcloud.io/dashboard/index/org.ligoj.plugin:plugin-build-jenkins)
-[![Sourcegraph Badge](https://sourcegraph.com/github.com/ligoj/plugin-build-jenkins/-/badge.svg)](https://sourcegraph.com/github.com/ligoj/plugin-build-jenkins?badge)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/773ae77ebb1d47a08ad7cb3ff255741a)](https://www.codacy.com/app/ligoj/plugin-build-jenkins?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ligoj/plugin-build-jenkins&amp;utm_campaign=Badge_Grade)
 [![CodeFactor](https://www.codefactor.io/repository/github/ligoj/plugin-build-jenkins/badge)](https://www.codefactor.io/repository/github/ligoj/plugin-build-jenkins)
 [![License](http://img.shields.io/:license-mit-blue.svg)](http://gus.mit-license.org/)
