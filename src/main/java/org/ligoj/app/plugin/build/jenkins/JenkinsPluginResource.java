@@ -32,11 +32,12 @@ import org.ligoj.app.model.Project;
 import org.ligoj.app.plugin.build.BuildResource;
 import org.ligoj.app.plugin.build.BuildServicePlugin;
 import org.ligoj.app.resource.NormalizeFormat;
-import org.ligoj.app.resource.plugin.AbstractXmlApiToolPluginResource;
+import org.ligoj.app.resource.plugin.AbstractToolPluginResource;
 import org.ligoj.app.resource.plugin.CurlProcessor;
 import org.ligoj.app.resource.plugin.CurlRequest;
 import org.ligoj.app.resource.plugin.HeaderHttpResponseCallback;
 import org.ligoj.app.resource.plugin.OnlyRedirectHttpResponseCallback;
+import org.ligoj.app.resource.plugin.XmlUtils;
 import org.ligoj.bootstrap.core.resource.BusinessException;
 import org.ligoj.bootstrap.core.validation.ValidationJsonException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ import org.w3c.dom.Element;
 @Path(JenkinsPluginResource.URL)
 @Service
 @Produces(MediaType.APPLICATION_JSON)
-public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource implements BuildServicePlugin {
+public class JenkinsPluginResource extends AbstractToolPluginResource implements BuildServicePlugin {
 
 	/**
 	 * Public server URL used to fetch the last available version of the
@@ -62,6 +63,9 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 
 	@Autowired
 	protected IamProvider[] iamProvider;
+
+	@Autowired
+	protected XmlUtils xml;
 
 	/**
 	 * Plug-in key.
@@ -342,7 +346,7 @@ public class JenkinsPluginResource extends AbstractXmlApiToolPluginResource impl
 		// Get the jobs and parse them
 		final String url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
 		final InputStream jobsAsInput = IOUtils.toInputStream(getResource(parameters, url), StandardCharsets.UTF_8);
-		final Element hudson = (Element) parse(jobsAsInput).getFirstChild();
+		final Element hudson = (Element) xml.parse(jobsAsInput).getFirstChild();
 		final Map<String, Job> result = new TreeMap<>();
 		for (final Element jobNode : DomUtils.getChildElementsByTagName(hudson, "job")) {
 
