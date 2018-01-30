@@ -23,18 +23,18 @@ function installJdk8 {
 }
 
 #
-# Maven 3.2.5 is installed by default on Travis. Maven 3.3.9 is preferred.
+# Maven 3.5.2 is installed by default on Travis. Maven 3.5.2 is preferred.
 #
 function installMaven {
   echo "Setup Maven"
   mkdir -p ~/maven
   pushd ~/maven > /dev/null
-  if [ ! -d "apache-maven-3.3.9" ]; then
-    echo "Download Maven 3.3.9"
-    curl -sSL http://apache.mirrors.ovh.net/ftp.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz | tar zx -C ~/maven
+  if [ ! -d "apache-maven-3.5.2" ]; then
+    echo "Download Maven 3.5.2"
+    curl -sSL http://apache.mirrors.ovh.net/ftp.apache.org/dist/maven/maven-3/3.5.2/binaries/apache-maven-3.5.2-bin.tar.gz | tar zx -C ~/maven
   fi
   popd > /dev/null
-  export M2_HOME=~/maven/apache-maven-3.3.9
+  export M2_HOME=~/maven/apache-maven-3.5.2
   export PATH=$M2_HOME/bin:$PATH
 }
 
