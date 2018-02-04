@@ -440,7 +440,8 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	public void buildInvalidUrl() throws Exception {
-		Map<String, String> map = Mockito.mock(Map.class);
+		@SuppressWarnings("unchecked")
+		final Map<String, String> map = Mockito.mock(Map.class);
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_TOKEN)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_URL)).thenThrow(new RuntimeException());
