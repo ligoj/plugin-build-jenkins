@@ -261,7 +261,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public String getVersion(final Map<String, String> parameters) throws Exception {
+	public String getVersion(final Map<String, String> parameters) {
 		// Check the user has enough rights to get the master configuration and
 		// get the master configuration and
 		return getResource(new JenkinsCurlProcessor(parameters, VERSION_CALLBACK), parameters.get(PARAMETER_URL),
@@ -390,7 +390,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public String getLastVersion() throws Exception {
+	public String getLastVersion() {
 		// Get the download index from the default repository
 		return getLastVersion(publicServer + "/war/");
 	}

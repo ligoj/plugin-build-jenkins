@@ -137,14 +137,14 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void getLastVersion() throws Exception {
+	public void getLastVersion() {
 		final String lastVersion = resource.getLastVersion();
 		Assertions.assertNotNull(lastVersion);
 		Assertions.assertTrue(lastVersion.compareTo("1.576") > 0);
 	}
 
 	@Test
-	public void getLastVersionFailed() throws Exception {
+	public void getLastVersionFailed() {
 		Assertions.assertNull(resource.getLastVersion("any:some"));
 	}
 
@@ -293,7 +293,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void validateAdminAccessConnectivityFail() throws Exception {
+	public void validateAdminAccessConnectivityFail() {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
@@ -303,7 +303,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void validateAdminAccessLoginFail() throws Exception {
+	public void validateAdminAccessLoginFail() {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
@@ -346,7 +346,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void findJobsByIdFail() throws Exception {
+	public void findJobsByIdFail() {
 		httpServer.stubFor(
 				get(urlEqualTo("/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstraps']&wrapper=hudson"))
 						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
@@ -439,7 +439,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void buildInvalidUrl() throws Exception {
+	public void buildInvalidUrl() {
 		@SuppressWarnings("unchecked")
 		final Map<String, String> map = Mockito.mock(Map.class);
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
