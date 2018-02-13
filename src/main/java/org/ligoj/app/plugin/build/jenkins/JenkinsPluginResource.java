@@ -1,5 +1,6 @@
 package org.ligoj.app.plugin.build.jenkins;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -21,6 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -45,6 +47,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 /**
  * Jenkins resource.
@@ -55,8 +58,7 @@ import org.w3c.dom.Element;
 public class JenkinsPluginResource extends AbstractToolPluginResource implements BuildServicePlugin {
 
 	/**
-	 * Public server URL used to fetch the last available version of the
-	 * product.
+	 * Public server URL used to fetch the last available version of the product.
 	 */
 	@Value("${service-build-jenkins-server:http://mirrors.jenkins-ci.org}")
 	private String publicServer;
@@ -130,7 +132,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// update template
 		final Project project = subscriptionRepository.findOneExpected(subscription).getProject();
-		final UserOrg teamLeader = iamProvider[0].getConfiguration().getUserRepository().findById(project.getTeamLeader());
+		final UserOrg teamLeader = iamProvider[0].getConfiguration().getUserRepository()
+				.findById(project.getTeamLeader());
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
 				.replaceAll("gfi-saas", project.getPkey())
@@ -244,16 +247,14 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Return a Jenkins's resource. Return <code>null</code> when the resource
-	 * is not found.
+	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
 	 */
 	protected String getResource(final Map<String, String> parameters, final String resource) {
 		return getResource(new JenkinsCurlProcessor(parameters), parameters.get(PARAMETER_URL), resource);
 	}
 
 	/**
-	 * Return a Jenkins's resource. Return <code>null</code> when the resource
-	 * is not found.
+	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
 	 */
 	protected String getResource(final CurlProcessor processor, final String url, final String resource) {
 		// Get the resource using the preempted authentication
@@ -269,8 +270,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Search the Jenkin's template jobs matching to the given criteria. Name,
-	 * display name and description are considered.
+	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
+	 * considered.
 	 * 
 	 * @param node
 	 *            the node to be tested with given parameters.
@@ -282,13 +283,13 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@Path("template/{node}/{criteria}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public List<Job> findAllTemplateByName(@PathParam("node") final String node,
-			@PathParam("criteria") final String criteria) throws Exception {
+			@PathParam("criteria") final String criteria)
+			throws SAXException, IOException, ParserConfigurationException {
 		return findAllByName(node, criteria, "view/Templates/");
 	}
 
 	/**
-	 * Search the Jenkin's jobs matching to the given criteria. Name, display
-	 * name and description are considered.
+	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
 	 * 
 	 * @param node
 	 *            the node to be tested with given parameters.
@@ -300,7 +301,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@Path("{node}/{criteria}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public List<Job> findAllByName(@PathParam("node") final String node, @PathParam("criteria") final String criteria)
-			throws Exception {
+			throws SAXException, IOException, ParserConfigurationException {
 		return findAllByName(node, criteria, null);
 	}
 
@@ -325,8 +326,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Search the Jenkin's jobs matching to the given criteria. Name, display
-	 * name and description are considered.
+	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
 	 * 
 	 * @param node
 	 *            the node to be tested with given parameters.
@@ -336,7 +336,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 *            The optional view URL.
 	 * @return job names matching the criteria.
 	 */
-	private List<Job> findAllByName(final String node, final String criteria, final String view) throws Exception { // NOSONAR Too many exceptions
+	private List<Job> findAllByName(final String node, final String criteria, final String view)
+			throws SAXException, IOException, ParserConfigurationException {
 
 		// Prepare the context, an ordered set of jobs
 		final Format format = new NormalizeFormat();
@@ -345,7 +346,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// Get the jobs and parse them
 		final String url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
-		final InputStream jobsAsInput = IOUtils.toInputStream(getResource(parameters, url), StandardCharsets.UTF_8);
+		final String jobsAsXml = StringUtils.defaultString(getResource(parameters, url), "<a/>");
+		final InputStream jobsAsInput = IOUtils.toInputStream(jobsAsXml, StandardCharsets.UTF_8);
 		final Element hudson = (Element) xml.parse(jobsAsInput).getFirstChild();
 		final Map<String, Job> result = new TreeMap<>();
 		for (final Element jobNode : DomUtils.getChildElementsByTagName(hudson, "job")) {
@@ -396,8 +398,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Return the last version available for Jenkins for the given repository
-	 * URL.
+	 * Return the last version available for Jenkins for the given repository URL.
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
@@ -423,8 +424,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
-			throws Exception {
+	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters) throws Exception {
 		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
 		return nodeStatusWithData;
@@ -456,8 +456,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @param parameters
 	 *            Parameters used to define the job
 	 * @param url
-	 *            URL added to the jenkins's URL to launch the job (can be build
-	 *            or buildWithParameters)
+	 *            URL added to the jenkins's URL to launch the job (can be build or buildWithParameters)
 	 * @return The result of the processing.
 	 */
 	protected boolean build(final Map<String, String> parameters, final String url) {
