@@ -110,7 +110,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	private static final HeaderHttpResponseCallback VERSION_CALLBACK = new HeaderHttpResponseCallback("x-jenkins");
 
 	@Override
-	public void link(final int subscription) throws Exception {
+	public void link(final int subscription) throws MalformedURLException, URISyntaxException {
 		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 
 		// Validate the node settings
@@ -121,7 +121,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void create(final int subscription) throws Exception {
+	public void create(final int subscription) throws IOException, URISyntaxException {
 		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 		// Validate the node settings
 		validateAdminAccess(parameters);
@@ -152,7 +152,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void delete(final int subscription, final boolean deleteRemoteData) throws Exception {
+	public void delete(final int subscription, final boolean deleteRemoteData)
+			throws MalformedURLException, URISyntaxException {
 		if (deleteRemoteData) {
 			final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 			// Validate the node settings
@@ -227,7 +228,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 *            the server parameters.
 	 * @return the detected Jenkins version.
 	 */
-	protected String validateAdminAccess(final Map<String, String> parameters) throws Exception {
+	protected String validateAdminAccess(final Map<String, String> parameters) {
 		CurlProcessor.validateAndClose(StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
 				PARAMETER_URL, "jenkins-connection");
 
@@ -417,14 +418,15 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public boolean checkStatus(final Map<String, String> parameters) throws Exception {
+	public boolean checkStatus(final Map<String, String> parameters) {
 		// Status is UP <=> Administration access is UP
 		validateAdminAccess(parameters);
 		return true;
 	}
 
 	@Override
-	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters) throws Exception {
+	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
+			throws MalformedURLException, URISyntaxException {
 		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
 		return nodeStatusWithData;
@@ -435,12 +437,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * 
 	 * @param subscription
 	 *            the subscription to use to locate the Jenkins instance.
-	 * @throws Exception
-	 *             when the job cannot be launched
 	 */
 	@POST
 	@Path("build/{subscription:\\d+}")
-	public void build(@PathParam("subscription") final int subscription) throws Exception {
+	public void build(@PathParam("subscription") final int subscription) {
 		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 
 		// Check the instance is available
