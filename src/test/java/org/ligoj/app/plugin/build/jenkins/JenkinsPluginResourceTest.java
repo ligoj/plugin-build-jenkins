@@ -7,6 +7,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.transaction.Transactional;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
@@ -41,6 +43,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.xml.sax.SAXException;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
@@ -67,9 +70,8 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	@BeforeEach
 	public void prepareData() throws IOException {
 		// Only with Spring context
-		persistEntities("csv",
-				new Class[] { Node.class, Parameter.class, Project.class, Subscription.class, ParameterValue.class, DelegateOrg.class },
-				StandardCharsets.UTF_8.name());
+		persistEntities("csv", new Class[] { Node.class, Parameter.class, Project.class, Subscription.class,
+				ParameterValue.class, DelegateOrg.class }, StandardCharsets.UTF_8.name());
 		this.subscription = getSubscription("gStack");
 
 		// Coverage only
@@ -77,29 +79,28 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	/**
-	 * Return the subscription identifier of the given project. Assumes there is
-	 * only one subscription for a service.
+	 * Return the subscription identifier of the given project. Assumes there is only one subscription for a service.
 	 */
 	protected int getSubscription(final String project) {
 		return getSubscription(project, BuildResource.SERVICE_KEY);
 	}
 
 	@Test
-	public void deleteLocal() throws Exception {
+	public void deleteLocal() throws MalformedURLException, URISyntaxException  {
 		resource.delete(subscription, false);
 		// nothing has been done. If remote delete is done, an exception will be
 		// thrown and this test will fail.
 	}
 
 	@Test
-	public void deleteRemote() throws Exception {
+	public void deleteRemote() throws IOException, URISyntaxException  {
 		addLoginAccess();
 		addAdminAccess();
 
 		// post delete
 		final UrlPattern deletePath = urlEqualTo("/job/gfi-bootstrap/doDelete");
-		httpServer.stubFor(
-				post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		httpServer.stubFor(post(deletePath).willReturn(
+				aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -109,7 +110,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void deleteRemoteFailed() throws Exception {
+	public void deleteRemoteFailed() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 
@@ -150,7 +151,8 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	public void validateJobNotFound() {
-		httpServer.stubFor(get(urlEqualTo("/job/gfi-bootstrap/config.xml")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlEqualTo("/job/gfi-bootstrap/config.xml"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		httpServer.start();
 
 		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
@@ -161,7 +163,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void link() throws Exception {
+	public void link() throws IOException, URISyntaxException {
 		addLoginAccess();
 		addAdminAccess();
 		addJobAccess();
@@ -201,11 +203,12 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	public void validateJobSimple() throws IOException, URISyntaxException {
-		httpServer.stubFor(
-				get(urlEqualTo("/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
-						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
-								new ClassPathResource("mock-server/jenkins/jenkins-gfi-bootstrap-config-simple.xml").getInputStream(),
-								StandardCharsets.UTF_8))));
+		httpServer.stubFor(get(urlEqualTo(
+				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
+						.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+								.withBody(IOUtils.toString(new ClassPathResource(
+										"mock-server/jenkins/jenkins-gfi-bootstrap-config-simple.xml").getInputStream(),
+										StandardCharsets.UTF_8))));
 		httpServer.start();
 
 		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
@@ -237,7 +240,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void checkStatus() throws Exception {
+	public void checkStatus() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 		httpServer.start();
@@ -248,7 +251,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void checkSubscriptionStatus() throws Exception {
+	public void checkSubscriptionStatus() throws IOException, URISyntaxException {
 		addJobAccess();
 		httpServer.start();
 
@@ -259,24 +262,26 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	private void addJobAccess() throws IOException {
-		httpServer.stubFor(
-				get(urlEqualTo("/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
+		httpServer.stubFor(get(urlEqualTo(
+				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
 						.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 								.withBody(IOUtils.toString(
-										new ClassPathResource("mock-server/jenkins/jenkins-gfi-bootstrap-config.xml").getInputStream(),
+										new ClassPathResource("mock-server/jenkins/jenkins-gfi-bootstrap-config.xml")
+												.getInputStream(),
 										StandardCharsets.UTF_8))));
 	}
 
 	private void addJobAccessBuilding() throws IOException {
-		httpServer.stubFor(
-				get(urlEqualTo("/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
+		httpServer.stubFor(get(urlEqualTo(
+				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstrap']&wrapper=hudson"))
 						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
-								new ClassPathResource("mock-server/jenkins/jenkins-gfi-bootstrap-config-building.xml").getInputStream(),
+								new ClassPathResource("mock-server/jenkins/jenkins-gfi-bootstrap-config-building.xml")
+										.getInputStream(),
 								StandardCharsets.UTF_8))));
 	}
 
 	@Test
-	public void validateAdminAccess() throws Exception {
+	public void validateAdminAccess() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 		addJobAccess();
@@ -288,8 +293,10 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	private void addAdminAccess() throws IOException {
 		httpServer.stubFor(get(urlEqualTo("/api/json?tree=numExecutors"))
-				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withHeader("x-jenkins", "1.574").withBody(IOUtils.toString(
-						new ClassPathResource("mock-server/jenkins/jenkins-version.json").getInputStream(), StandardCharsets.UTF_8))));
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withHeader("x-jenkins", "1.574")
+						.withBody(IOUtils.toString(
+								new ClassPathResource("mock-server/jenkins/jenkins-version.json").getInputStream(),
+								StandardCharsets.UTF_8))));
 	}
 
 	@Test
@@ -314,9 +321,10 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void validateAdminAccessNoRight() throws Exception {
+	public void validateAdminAccessNoRight() throws IOException {
 		addLoginAccess();
-		httpServer.stubFor(get(urlEqualTo("/computer/(master)/config.xml")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
+		httpServer.stubFor(get(urlEqualTo("/computer/(master)/config.xml"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
 		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
@@ -325,12 +333,28 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void findJobsByName() throws Exception {
-		httpServer.stubFor(get(urlPathEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
-				new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(), StandardCharsets.UTF_8))));
+	public void findAllByName() throws IOException, SAXException, ParserConfigurationException {
+		httpServer.stubFor(get(urlPathEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody(IOUtils.toString(
+						new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(),
+						StandardCharsets.UTF_8))));
 		httpServer.start();
+		checkFIndAll();
+	}
 
-		final List<Job> jobs = resource.findAllByName("service:build:jenkins:bpr", "gfi");
+	@Test
+	public void findAllTemplateByName() throws IOException, SAXException, ParserConfigurationException  {
+		httpServer.stubFor(
+				get(urlPathEqualTo("/view/Templates/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+						.withBody(IOUtils.toString(
+								new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(),
+								StandardCharsets.UTF_8))));
+		httpServer.start();
+		checkFIndAll();
+	}
+
+	private void checkFIndAll() throws SAXException, IOException, ParserConfigurationException {
+		final List<Job> jobs = resource.findAllTemplateByName("service:build:jenkins:bpr", "gfi");
 		Assertions.assertEquals(29, jobs.size());
 		Assertions.assertEquals("Gfi - Chronotime - SSE", jobs.get(3).getName());
 		Assertions.assertEquals("CHRONOTIME - Projet SSE", jobs.get(3).getDescription());
@@ -338,17 +362,28 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 		Assertions.assertEquals("disabled", jobs.get(3).getStatus());
 	}
 
+	/**
+	 * Bad credential
+	 */
 	@Test
-	public void findJobsByIdSuccess() throws Exception {
+	public void findAllByNameFailed() throws IOException, SAXException, ParserConfigurationException {
+		httpServer.stubFor(get(urlPathEqualTo("/api/xml"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_UNAUTHORIZED).withBody("<html>FORBIDDEN</html>")));
+		httpServer.start();
+		Assertions.assertEquals(0, resource.findAllByName("service:build:jenkins:bpr", "gfi").size());
+	}
+
+	@Test
+	public void findById() throws IOException, URISyntaxException {
 		addJobAccessBuilding();
 		httpServer.start();
 		checkJob(resource.findById("service:build:jenkins:bpr", "gfi-bootstrap"), true);
 	}
 
 	@Test
-	public void findJobsByIdFail() {
-		httpServer.stubFor(
-				get(urlEqualTo("/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstraps']&wrapper=hudson"))
+	public void findByIdFail() {
+		httpServer.stubFor(get(urlEqualTo(
+				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='gfi-bootstraps']&wrapper=hudson"))
 						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
 		httpServer.start();
 		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
@@ -358,22 +393,28 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	private void addLoginAccess() throws IOException {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
-		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils
-				.toString(new ClassPathResource("mock-server/jenkins/jenkins-api-xml.xml").getInputStream(), StandardCharsets.UTF_8))));
+		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody(IOUtils.toString(
+						new ClassPathResource("mock-server/jenkins/jenkins-api-xml.xml").getInputStream(),
+						StandardCharsets.UTF_8))));
 	}
 
 	@Test
-	public void create() throws Exception {
+	public void create() throws IOException, URISyntaxException {
 		addLoginAccess();
 		addAdminAccess();
 
 		// retrieve template config.xml
-		httpServer.stubFor(get(urlEqualTo("/job/template/config.xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
-				.withBody(IOUtils.toString(new ClassPathResource("mock-server/jenkins/jenkins-template-config.xml").getInputStream(),
+		httpServer.stubFor(get(urlEqualTo("/job/template/config.xml")).willReturn(aResponse()
+				.withStatus(HttpStatus.SC_OK)
+				.withBody(IOUtils.toString(
+						new ClassPathResource("mock-server/jenkins/jenkins-template-config.xml").getInputStream(),
 						StandardCharsets.UTF_8))));
 		// post new job config.xml
-		httpServer.stubFor(post(urlEqualTo("/createItem?name=gfi-bootstrap")).withRequestBody(WireMock.containing("fdaugan@sample.com"))
-				.withRequestBody(WireMock.containing("<disabled>false</disabled>")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=gfi-bootstrap"))
+				.withRequestBody(WireMock.containing("fdaugan@sample.com"))
+				.withRequestBody(WireMock.containing("<disabled>false</disabled>"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.start();
 
 		// prepare new subscription
@@ -383,17 +424,19 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void createFailed() throws Exception {
+	public void createFailed() throws IOException  {
 		addLoginAccess();
 		addAdminAccess();
 
 		// retrieve template config.xml
-		httpServer.stubFor(get(urlEqualTo("/job/template/config.xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
-				.withBody(IOUtils.toString(new ClassPathResource("mock-server/jenkins/jenkins-template-config.xml").getInputStream(),
+		httpServer.stubFor(get(urlEqualTo("/job/template/config.xml")).willReturn(aResponse()
+				.withStatus(HttpStatus.SC_OK)
+				.withBody(IOUtils.toString(
+						new ClassPathResource("mock-server/jenkins/jenkins-template-config.xml").getInputStream(),
 						StandardCharsets.UTF_8))));
 		// post new job config.xml
-		httpServer
-				.stubFor(post(urlEqualTo("/createItem?name=gfi-bootstrap")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_REQUEST)));
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=gfi-bootstrap"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_BAD_REQUEST)));
 		httpServer.start();
 
 		// prepare new subscription
@@ -420,7 +463,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void buildFailed() throws Exception {
+	public void buildFailed() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 		httpServer.start();
@@ -430,10 +473,11 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void build() throws Exception {
+	public void build() throws IOException  {
 		addLoginAccess();
 		addAdminAccess();
-		httpServer.stubFor(post(urlEqualTo("/job/gfi-bootstrap/build")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(
+				post(urlEqualTo("/job/gfi-bootstrap/build")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.start();
 		this.resource.build(subscription);
 	}
@@ -451,12 +495,13 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	public void buildParameters() throws Exception {
+	public void buildParameters() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
-		httpServer.stubFor(
-				post(urlEqualTo("/job/gfi-bootstrap/build")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
-		httpServer.stubFor(post(urlEqualTo("/job/gfi-bootstrap/buildWithParameters")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/job/gfi-bootstrap/build"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+		httpServer.stubFor(post(urlEqualTo("/job/gfi-bootstrap/buildWithParameters"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.start();
 		this.resource.build(subscription);
 
