@@ -1,3 +1,6 @@
+/*
+ * Licensed under MIT (https://github.com/ligoj/ligoj/blob/master/LICENSE)
+ */
 package org.ligoj.app.plugin.build.jenkins;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -339,7 +342,7 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 						new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(),
 						StandardCharsets.UTF_8))));
 		httpServer.start();
-		checkFIndAll();
+		checkFindAll();
 	}
 
 	@Test
@@ -350,10 +353,10 @@ public class JenkinsPluginResourceTest extends AbstractServerTest {
 								new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(),
 								StandardCharsets.UTF_8))));
 		httpServer.start();
-		checkFIndAll();
+		checkFindAll();
 	}
 
-	private void checkFIndAll() throws SAXException, IOException, ParserConfigurationException {
+	private void checkFindAll() throws SAXException, IOException, ParserConfigurationException {
 		final List<Job> jobs = resource.findAllTemplateByName("service:build:jenkins:bpr", "gfi");
 		Assertions.assertEquals(29, jobs.size());
 		Assertions.assertEquals("Gfi - Chronotime - SSE", jobs.get(3).getName());

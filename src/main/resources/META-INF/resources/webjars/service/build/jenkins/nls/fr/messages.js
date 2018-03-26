@@ -1,3 +1,6 @@
+/*
+ * Licensed under MIT (https://github.com/ligoj/ligoj/blob/master/LICENSE)
+ */
 define({
 	'service:build:jenkins:job': 'Tâche',
 	'service:build:jenkins:job-description': 'Nom de la tâche. Il est possible de saisir le nom ou la description',
