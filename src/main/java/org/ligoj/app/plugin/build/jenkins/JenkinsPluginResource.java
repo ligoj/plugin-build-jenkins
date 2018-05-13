@@ -149,8 +149,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
 		final CurlRequest curlRequest = new CurlRequest(HttpMethod.POST,
 				jenkinsBaseUrl + "/createItem?name=" + encode(job), configXml, "Content-Type:application/xml");
-		if (!new JenkinsCurlProcessor(parameters).process(curlRequest)) {
-			throw new BusinessException("Creating the job for the subscription {} failed.", subscription);
+		try (CurlProcessor curl = new JenkinsCurlProcessor(parameters)) {
+			if (!curl.process(curlRequest)) {
+				throw new BusinessException("Creating the job for the subscription {} failed.", subscription);
+			}
 		}
 	}
 
@@ -167,15 +169,17 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
 			final CurlRequest curlRequest = new CurlRequest(HttpMethod.POST,
 					jenkinsBaseUrl + "/job/" + encode(job) + "/doDelete", StringUtils.EMPTY);
-			if (!new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback()).process(curlRequest)) {
-				throw new BusinessException("Deleting the job for the subscription {} failed.", subscription);
+			try (CurlProcessor curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
+				if (!curl.process(curlRequest)) {
+					throw new BusinessException("Deleting the job for the subscription {} failed.", subscription);
+				}
 			}
 		}
 	}
 
 	/**
 	 * Validate the administration connectivity.
-	 * 
+	 *
 	 * @param parameters
 	 *            the administration parameters.
 	 * @return job name.
@@ -208,7 +212,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Return the node text without using document parser.
-	 * 
+	 *
 	 * @param xmlContent
 	 *            XML content.
 	 * @param node
@@ -226,7 +230,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Validate the basic REST connectivity to Jenkins.
-	 * 
+	 *
 	 * @param parameters
 	 *            the server parameters.
 	 * @return the detected Jenkins version.
@@ -276,7 +280,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
 	 * considered.
-	 * 
+	 *
 	 * @param node
 	 *            the node to be tested with given parameters.
 	 * @param criteria
@@ -294,7 +298,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
-	 * 
+	 *
 	 * @param node
 	 *            the node to be tested with given parameters.
 	 * @param criteria
@@ -311,7 +315,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Get Jenkins job name by id.
-	 * 
+	 *
 	 * @param node
 	 *            the node to be tested with given parameters.
 	 * @param id
@@ -331,7 +335,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
-	 * 
+	 *
 	 * @param node
 	 *            the node to be tested with given parameters.
 	 * @param criteria
@@ -381,7 +385,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Return the color from the raw color of the job.
-	 * 
+	 *
 	 * @param color
 	 *            Raw color node from the job status.
 	 * @return The color without 'anime' flag.
@@ -406,18 +410,19 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
-		final CurlProcessor processor = new CurlProcessor();
-		final String downloadPage = ObjectUtils.defaultIfNull(processor.get(repo), "");
+		try (CurlProcessor curl = new CurlProcessor()) {
+			final String downloadPage = ObjectUtils.defaultIfNull(curl.get(repo), "");
 
-		// Find the last download link
-		final Matcher matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
-		String lastVersion = null;
-		while (matcher.find()) {
-			lastVersion = matcher.group(1);
+			// Find the last download link
+			final Matcher matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
+			String lastVersion = null;
+			while (matcher.find()) {
+				lastVersion = matcher.group(1);
+			}
+
+			// Return the last read version
+			return lastVersion;
 		}
-
-		// Return the last read version
-		return lastVersion;
 	}
 
 	@Override
@@ -437,7 +442,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Used to launch the job for the subscription.
-	 * 
+	 *
 	 * @param subscription
 	 *            the subscription to use to locate the Jenkins instance.
 	 */
@@ -455,7 +460,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Launch the job with the URL.
-	 * 
+	 *
 	 * @param parameters
 	 *            Parameters used to define the job
 	 * @param url

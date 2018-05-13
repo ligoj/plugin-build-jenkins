@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.ligoj.api</groupId>
 		<artifactId>plugin-parent</artifactId>
-		<version>2.2.2</version>
+		<version>2.4.2</version>
 		<relativePath />
 	</parent>
 
@@ -13,6 +13,12 @@
 	<version>1.0.5-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Ligoj - Plugin Build - Jenkins</name>
+
+	<scm>
+		<connection>scm:git:https://github.com/ligoj/plugin-build-jenkins</connection>
+		<developerConnection>scm:git:https://github.com/ligoj/plugin-build-jenkins</developerConnection>
+		<url>https://github.com/ligoj/plugin-build-jenkins.git</url>
+	</scm>
 
 	<dependencies>
 		<dependency>
