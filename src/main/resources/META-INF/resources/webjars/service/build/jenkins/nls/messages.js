@@ -4,7 +4,7 @@
 define({
 	'root': {
 		'service:build:jenkins:job': 'Job',
-		'service:build:jenkins:job': 'Job name. You type name or display name to search it',
+		'service:build:jenkins:job-description': 'Job name. You type name or display name to search it',
 		'service:build:jenkins:url': 'URL',
 		'service:build:jenkins:user': 'User',
 		'service:build:jenkins:api-token': 'API Token',
