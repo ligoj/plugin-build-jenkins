@@ -4,13 +4,13 @@
 	<parent>
 		<groupId>org.ligoj.api</groupId>
 		<artifactId>plugin-parent</artifactId>
-		<version>2.4.4</version>
+		<version>3.1.1</version>
 		<relativePath />
 	</parent>
 
 	<groupId>org.ligoj.plugin</groupId>
 	<artifactId>plugin-build-jenkins</artifactId>
-	<version>1.0.6-SNAPSHOT</version>
+	<version>1.0.6</version>
 	<packaging>jar</packaging>
 	<name>Ligoj - Plugin Build - Jenkins</name>
 
@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>org.ligoj.plugin</groupId>
 			<artifactId>plugin-build</artifactId>
-			<version>[1.0.0,1.1.0)</version>
+			<version>[1.0.1,1.1.0)</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
