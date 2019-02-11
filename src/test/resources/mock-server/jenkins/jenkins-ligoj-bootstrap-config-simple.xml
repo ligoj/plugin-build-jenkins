@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <hudson>
 	<job>
-		<name>gfi-bootstrap</name>
+		<name>ligoj-bootstrap</name>
 	</job>
 </hudson>

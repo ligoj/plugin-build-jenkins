@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <hudson>
 	<job>
-		<displayName>Gfi - Bootstrap</displayName>
+		<displayName>Ligoj - Bootstrap</displayName>
 		<description>Any description</description>
-		<name>gfi-bootstrap</name>
-		<color>yellow_anime</color>
+		<name>ligoj-bootstrap</name>
+		<color>yellow</color>
 	</job>
 </hudson>

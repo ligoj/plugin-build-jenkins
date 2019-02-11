@@ -28,10 +28,8 @@
   <workspaceDir>${ITEM_ROOTDIR}/workspace</workspaceDir>
   <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
   <systemMessage>Retrouvez toute l&apos;actualité des outils de projet sur &#xd;
-&lt;a href=&quot;https://www.yammer.com/gfi.fr/#/threads/inGroup?type=in_group&amp;feedId=2634443&quot;&gt;Yammer&lt;/a&gt;&lt;br&gt;&#xd;
-&lt;font color=&quot;red&quot;&gt;&lt;strong&gt;Attention&lt;/strong&gt; Changez dès maintenant votre accès aux outils de l&apos;intégration&#xd;
-  continue anciennement &lt;strong&gt;ci.gfinord.fr&lt;/strong&gt;, &#xd;
-devient &lt;a href=&quot;https://ci.gfi.fr/jenkins&quot;&gt;&lt;strong&gt;ci.gfi.fr&lt;/strong&gt;&lt;/a&gt;&lt;/font&gt;&#xd;
+&lt;a href=&quot;https://www.yammer.com/kloudy.io/#/threads/inGroup?type=in_group&amp;feedId=2634443&quot;&gt;Yammer&lt;/a&gt;&lt;br&gt;&#xd;
+&lt;font color=&quot;red&quot;&gt;&lt;strong&gt;Attention&lt;/strong&gt; Changez dès maintenant votre accès&#xd;
 &#xd;
 </systemMessage>
   <markupFormatter class="hudson.markup.RawHtmlMarkupFormatter" plugin="antisamy-markup-formatter@1.2">
@@ -158,11 +156,11 @@ devient &lt;a href=&quot;https://ci.gfi.fr/jenkins&quot;&gt;&lt;strong&gt;ci.gfi
         <string>FRANCE TELECOM - CCE</string>
         <string>FRANCE TELECOM - CCE (Production)</string>
         <string>FRANCE TELECOM - CCE (Recette)</string>
-        <string>Gfi - Bootstrap</string>
-        <string>GFI - JEE Framework GWT</string>
-        <string>Gfi - PPM</string>
-        <string>Gfi - Report</string>
-        <string>GFI - Vigireport</string>
+        <string>Ligoj - Bootstrap</string>
+        <string>Ligoj - JEE Framework GWT</string>
+        <string>Ligoj - PPM</string>
+        <string>Ligoj - Report</string>
+        <string>Ligoj - Vigireport</string>
         <string>GROUPAMA - KPI</string>
         <string>iPhone - POC</string>
         <string>IRIS - Nouvel Arrivant</string>

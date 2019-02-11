@@ -2,4 +2,4 @@ parameter.id;data;node.id;subscription.id!
 service:build:jenkins:user;+yO5DXfq4dEABpj9gQTzSg==;service:build:jenkins:bpr;
 service:build:jenkins:api-token;SwhwVQpC7YXT2xrXHlHNOw==;service:build:jenkins:bpr;
 service:build:jenkins:url;http://localhost:8120;service:build:jenkins:bpr;
-service:build:jenkins:job;gfi-bootstrap;;1
+service:build:jenkins:job;ligoj-bootstrap;;1

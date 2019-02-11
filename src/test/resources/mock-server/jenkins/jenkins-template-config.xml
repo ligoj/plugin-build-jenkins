@@ -7,27 +7,27 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.security.AuthorizationMatrixProperty>
-      <permission>hudson.model.Item.Cancel:gfi-saas</permission>
+      <permission>hudson.model.Item.Cancel:ligoj-saas</permission>
       <permission>hudson.model.Item.Cancel:alocquet</permission>
-      <permission>hudson.model.Item.Read:gfi-saas</permission>
+      <permission>hudson.model.Item.Read:ligoj-saas</permission>
       <permission>hudson.model.Item.Read:alocquet</permission>
-      <permission>hudson.model.Item.Workspace:gfi-saas</permission>
+      <permission>hudson.model.Item.Workspace:ligoj-saas</permission>
       <permission>hudson.model.Item.Workspace:alocquet</permission>
-      <permission>hudson.model.Item.Build:gfi-saas</permission>
+      <permission>hudson.model.Item.Build:ligoj-saas</permission>
       <permission>hudson.model.Item.Build:alocquet</permission>
-      <permission>hudson.scm.SCM.Tag:gfi-saas</permission>
+      <permission>hudson.scm.SCM.Tag:ligoj-saas</permission>
       <permission>hudson.scm.SCM.Tag:alocquet</permission>
-      <permission>hudson.model.Item.Configure:gfi-saas</permission>
+      <permission>hudson.model.Item.Configure:ligoj-saas</permission>
       <permission>hudson.model.Item.Configure:alocquet</permission>
-      <permission>hudson.model.Item.Discover:gfi-saas</permission>
+      <permission>hudson.model.Item.Discover:ligoj-saas</permission>
       <permission>hudson.model.Item.Discover:alocquet</permission>
-      <permission>hudson.model.Item.ViewStatus:gfi-saas</permission>
+      <permission>hudson.model.Item.ViewStatus:ligoj-saas</permission>
       <permission>hudson.model.Item.ViewStatus:alocquet</permission>
-      <permission>hudson.model.Run.Update:gfi-saas</permission>
+      <permission>hudson.model.Run.Update:ligoj-saas</permission>
       <permission>hudson.model.Run.Update:alocquet</permission>
     </hudson.security.AuthorizationMatrixProperty>
     <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.4.2">
-      <gitLabConnection>https://delivery.gfi.fr/gitlab/</gitLabConnection>
+      <gitLabConnection>https://delivery.ligoj.fr/gitlab/</gitLabConnection>
     </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
     <org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty plugin="gitlab-logo@1.0.1">
       <repositoryName></repositoryName>
@@ -46,7 +46,7 @@
   <scm class="hudson.scm.SubversionSCM" plugin="subversion@2.7.1">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://delivery.gfi.fr/svn/gfi-saas/trunk</remote>
+        <remote>https://delivery.ligoj.fr/svn/ligojligojligoj-saas/trunk</remote>
         <credentialsId>4901f073-08dc-4c32-8916-b4e4a8472c99</credentialsId>
         <local>.</local>
         <depthOption>infinity</depthOption>
@@ -75,10 +75,10 @@
   </triggers>
   <concurrentBuild>false</concurrentBuild>
   <rootModule>
-    <groupId>fr.gfi</groupId>
+    <groupId>fr.ligoj</groupId>
     <artifactId>saas-admin</artifactId>
   </rootModule>
-  <goals>clean package $SONAR_MAVEN_GOAL $SONAR_EXTRA_PROPS -e -Pjacoco -Djacoco.includes=fr.gfi.saas.*</goals>
+  <goals>clean package $SONAR_MAVEN_GOAL $SONAR_EXTRA_PROPS -e -Pjacoco -Djacoco.includes=fr.ligoj.saas.*</goals>
   <mavenName>maven</mavenName>
   <aggregatorStyleBuild>true</aggregatorStyleBuild>
   <incrementalBuild>false</incrementalBuild>
@@ -96,7 +96,7 @@
   <globalSettings class="jenkins.mvn.DefaultGlobalSettingsProvider"/>
   <reporters>
     <hudson.maven.reporters.MavenMailer>
-      <recipients>responsable.projet@gfi.fr</recipients>
+      <recipients>someone@sample.org</recipients>
       <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
       <perModuleEmail>false</perModuleEmail>
@@ -104,7 +104,7 @@
   </reporters>
   <publishers>
     <com.marvelution.jenkins.plugins.jira.notifier.JIRABuildNotifier plugin="jenkins-jira-plugin@1.4.7">
-      <postUrl>https://delivery.gfi.fr/jira/rest/jenkins/1.0/build/395</postUrl>
+      <postUrl>https://delivery.ligoj.fr/jira/rest/jenkins/1.0/build/395</postUrl>
     </com.marvelution.jenkins.plugins.jira.notifier.JIRABuildNotifier>
   </publishers>
   <buildWrappers/>

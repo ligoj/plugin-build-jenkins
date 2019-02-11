@@ -139,8 +139,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 				.findById(project.getTeamLeader());
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
-				.replaceAll("gfi-saas", project.getPkey())
-				.replaceAll("responsable.projet@gfi.fr", teamLeader.getMails().get(0))
+				.replaceAll("ligoj-saas", project.getPkey())
+				.replaceAll("someone@sample.org", teamLeader.getMails().get(0))
 				.replaceFirst("(<displayName>).*?(</displayName>)", "$1" + project.getName() + "$2")
 				.replaceFirst("(<description>).*?(</description>)", "$1" + project.getDescription() + "$2");
 
