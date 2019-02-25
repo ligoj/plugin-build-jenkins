@@ -61,18 +61,6 @@ import org.xml.sax.SAXException;
 public class JenkinsPluginResource extends AbstractToolPluginResource implements BuildServicePlugin {
 
 	/**
-	 * Public server URL used to fetch the last available version of the product.
-	 */
-	@Value("${service-build-jenkins-server:http://mirrors.jenkins-ci.org}")
-	private String publicServer;
-
-	@Autowired
-	protected IamProvider[] iamProvider;
-
-	@Autowired
-	protected XmlUtils xml;
-
-	/**
 	 * Plug-in key.
 	 */
 	public static final String URL = BuildResource.SERVICE_URL + "/jenkins";
@@ -112,15 +100,69 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	private static final HeaderHttpResponseCallback VERSION_CALLBACK = new HeaderHttpResponseCallback("x-jenkins");
 
-	@Override
-	public void link(final int subscription) throws MalformedURLException, URISyntaxException {
+	/**
+	 * Public server URL used to fetch the last available version of the product.
+	 */
+	@Value("${service-build-jenkins-server:http://mirrors.jenkins-ci.org}")
+	private String publicServer;
+
+	@Autowired
+	protected IamProvider[] iamProvider;
+
+	@Autowired
+	protected XmlUtils xml;
+
+	/**
+	 * Used to launch the job for the subscription.
+	 *
+	 * @param subscription
+	 *            the subscription to use to locate the Jenkins instance.
+	 */
+	@POST
+	@Path("build/{subscription:\\d+}")
+	public void build(@PathParam("subscription") final int subscription) {
 		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 
-		// Validate the node settings
+		// Check the instance is available
 		validateAdminAccess(parameters);
+		if (!build(parameters, "build") && !build(parameters, "buildWithParameters")) {
+			throw new BusinessException("Launching the job for the subscription {} failed.", subscription);
+		}
+	}
 
-		// Validate the job settings
-		validateJob(parameters);
+	/**
+	 * Launch the job with the URL.
+	 *
+	 * @param parameters
+	 *            Parameters used to define the job
+	 * @param url
+	 *            URL added to the jenkins's URL to launch the job (can be build or buildWithParameters)
+	 * @return The result of the processing.
+	 */
+	protected boolean build(final Map<String, String> parameters, final String url) {
+		final CurlProcessor processor = new JenkinsCurlProcessor(parameters);
+		try {
+			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
+			final String jobName = parameters.get(PARAMETER_JOB);
+			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "/job/" + jobName + "/" + url, null));
+		} finally {
+			processor.close();
+		}
+	}
+
+	@Override
+	public boolean checkStatus(final Map<String, String> parameters) {
+		// Status is UP <=> Administration access is UP
+		validateAdminAccess(parameters);
+		return true;
+	}
+
+	@Override
+	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
+			throws MalformedURLException, URISyntaxException {
+		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
+		nodeStatusWithData.put("job", validateJob(parameters));
+		return nodeStatusWithData;
 	}
 
 	@Override
@@ -177,123 +219,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		}
 	}
 
-	/**
-	 * Validate the administration connectivity.
-	 *
-	 * @param parameters
-	 *            the administration parameters.
-	 * @return job name.
-	 */
-	protected Job validateJob(final Map<String, String> parameters) throws MalformedURLException, URISyntaxException {
-		// Get job's configuration
-		final String job = parameters.get(PARAMETER_JOB);
-		final String jobXml = getResource(parameters,
-				"api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='" + encode(job)
-						+ "']&wrapper=hudson");
-		if (jobXml == null || "<hudson/>".equals(jobXml)) {
-			// Invalid couple PKEY and id
-			throw new ValidationJsonException(PARAMETER_JOB, "jenkins-job", job);
-		}
-
-		// Retrieve description, status and display name
-		final Job result = new Job();
-		result.setName(getNodeText(jobXml, "displayName"));
-		result.setDescription(getNodeText(jobXml, "description"));
-		final String statusNode = StringUtils.defaultString(getNodeText(jobXml, "color"), "disabled");
-		result.setStatus(toStatus(statusNode));
-		result.setBuilding(statusNode.endsWith("_anime"));
-		result.setId(job);
-		return result;
-	}
-
 	private String encode(final String job) throws MalformedURLException, URISyntaxException {
 		return new URI("http", job, "").toURL().getPath();
-	}
-
-	/**
-	 * Return the node text without using document parser.
-	 *
-	 * @param xmlContent
-	 *            XML content.
-	 * @param node
-	 *            the node name.
-	 * @return trimmed node text or <code>null</code>.
-	 */
-	private String getNodeText(final String xmlContent, final String node) {
-		final Matcher matcher = Pattern.compile("<" + node + ">([^<]*)</" + node + ">")
-				.matcher(ObjectUtils.defaultIfNull(xmlContent, ""));
-		if (matcher.find()) {
-			return StringUtils.trimToNull(matcher.group(1));
-		}
-		return null;
-	}
-
-	/**
-	 * Validate the basic REST connectivity to Jenkins.
-	 *
-	 * @param parameters
-	 *            the server parameters.
-	 * @return the detected Jenkins version.
-	 */
-	protected String validateAdminAccess(final Map<String, String> parameters) {
-		CurlProcessor.validateAndClose(StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
-				PARAMETER_URL, "jenkins-connection");
-
-		// Check the user can log-in to Jenkins with the preempted
-		// authentication processor
-		if (getResource(parameters, "api/xml") == null) {
-			throw new ValidationJsonException(PARAMETER_USER, "jenkins-login");
-		}
-
-		// Check the user has enough rights to get the master configuration and
-		// return the version
-		final String version = getVersion(parameters);
-		if (version == null) {
-			throw new ValidationJsonException(PARAMETER_USER, "jenkins-rights");
-		}
-		return version;
-	}
-
-	/**
-	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
-	 */
-	protected String getResource(final Map<String, String> parameters, final String resource) {
-		return getResource(new JenkinsCurlProcessor(parameters), parameters.get(PARAMETER_URL), resource);
-	}
-
-	/**
-	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
-	 */
-	protected String getResource(final CurlProcessor processor, final String url, final String resource) {
-		// Get the resource using the preempted authentication
-		return processor.get(StringUtils.appendIfMissing(url, "/") + resource);
-	}
-
-	@Override
-	public String getVersion(final Map<String, String> parameters) {
-		// Check the user has enough rights to get the master configuration and
-		// get the master configuration and
-		return getResource(new JenkinsCurlProcessor(parameters, VERSION_CALLBACK), parameters.get(PARAMETER_URL),
-				"api/json?tree=numExecutors");
-	}
-
-	/**
-	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
-	 * considered.
-	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param criteria
-	 *            the search criteria.
-	 * @return template job names matching the criteria.
-	 */
-	@GET
-	@Path("template/{node}/{criteria}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public List<Job> findAllTemplateByName(@PathParam("node") final String node,
-			@PathParam("criteria") final String criteria)
-			throws SAXException, IOException, ParserConfigurationException {
-		return findAllByName(node, criteria, "view/Templates/");
 	}
 
 	/**
@@ -311,26 +238,6 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public List<Job> findAllByName(@PathParam("node") final String node, @PathParam("criteria") final String criteria)
 			throws SAXException, IOException, ParserConfigurationException {
 		return findAllByName(node, criteria, null);
-	}
-
-	/**
-	 * Get Jenkins job name by id.
-	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param id
-	 *            The job name/identifier.
-	 * @return job names matching the criteria.
-	 */
-	@GET
-	@Path("{node}/job/{id}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
-			throws MalformedURLException, URISyntaxException {
-		// Prepare the context, an ordered set of jobs
-		final Map<String, String> parameters = pvResource.getNodeParameters(node);
-		parameters.put(PARAMETER_JOB, id);
-		return validateJob(parameters);
 	}
 
 	/**
@@ -384,14 +291,42 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Return the color from the raw color of the job.
+	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
+	 * considered.
 	 *
-	 * @param color
-	 *            Raw color node from the job status.
-	 * @return The color without 'anime' flag.
+	 * @param node
+	 *            the node to be tested with given parameters.
+	 * @param criteria
+	 *            the search criteria.
+	 * @return template job names matching the criteria.
 	 */
-	private String toStatus(final String color) {
-		return StringUtils.removeEnd(StringUtils.defaultString(color, "disabled"), "_anime");
+	@GET
+	@Path("template/{node}/{criteria}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public List<Job> findAllTemplateByName(@PathParam("node") final String node,
+			@PathParam("criteria") final String criteria)
+			throws SAXException, IOException, ParserConfigurationException {
+		return findAllByName(node, criteria, "view/Templates/");
+	}
+
+	/**
+	 * Get Jenkins job name by id.
+	 *
+	 * @param node
+	 *            the node to be tested with given parameters.
+	 * @param id
+	 *            The job name/identifier.
+	 * @return job names matching the criteria.
+	 */
+	@GET
+	@Path("{node}/job/{id}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
+			throws MalformedURLException, URISyntaxException {
+		// Prepare the context, an ordered set of jobs
+		final Map<String, String> parameters = pvResource.getNodeParameters(node);
+		parameters.put(PARAMETER_JOB, id);
+		return validateJob(parameters);
 	}
 
 	@Override
@@ -425,57 +360,122 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		}
 	}
 
-	@Override
-	public boolean checkStatus(final Map<String, String> parameters) {
-		// Status is UP <=> Administration access is UP
-		validateAdminAccess(parameters);
-		return true;
-	}
-
-	@Override
-	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
-			throws MalformedURLException, URISyntaxException {
-		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
-		nodeStatusWithData.put("job", validateJob(parameters));
-		return nodeStatusWithData;
+	/**
+	 * Return the node text without using document parser.
+	 *
+	 * @param xmlContent
+	 *            XML content.
+	 * @param node
+	 *            the node name.
+	 * @return trimmed node text or <code>null</code>.
+	 */
+	private String getNodeText(final String xmlContent, final String node) {
+		final Matcher matcher = Pattern.compile("<" + node + ">([^<]*)</" + node + ">")
+				.matcher(ObjectUtils.defaultIfNull(xmlContent, ""));
+		if (matcher.find()) {
+			return StringUtils.trimToNull(matcher.group(1));
+		}
+		return null;
 	}
 
 	/**
-	 * Used to launch the job for the subscription.
-	 *
-	 * @param subscription
-	 *            the subscription to use to locate the Jenkins instance.
+	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
 	 */
-	@POST
-	@Path("build/{subscription:\\d+}")
-	public void build(@PathParam("subscription") final int subscription) {
+	protected String getResource(final CurlProcessor processor, final String url, final String resource) {
+		// Get the resource using the preempted authentication
+		return processor.get(StringUtils.appendIfMissing(url, "/") + resource);
+	}
+
+	/**
+	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
+	 */
+	protected String getResource(final Map<String, String> parameters, final String resource) {
+		return getResource(new JenkinsCurlProcessor(parameters), parameters.get(PARAMETER_URL), resource);
+	}
+
+	@Override
+	public String getVersion(final Map<String, String> parameters) {
+		// Check the user has enough rights to get the master configuration and
+		// get the master configuration and
+		return getResource(new JenkinsCurlProcessor(parameters, VERSION_CALLBACK), parameters.get(PARAMETER_URL),
+				"api/json?tree=numExecutors");
+	}
+
+	@Override
+	public void link(final int subscription) throws MalformedURLException, URISyntaxException {
 		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
 
-		// Check the instance is available
+		// Validate the node settings
 		validateAdminAccess(parameters);
-		if (!build(parameters, "build") && !build(parameters, "buildWithParameters")) {
-			throw new BusinessException("Launching the job for the subscription {} failed.", subscription);
-		}
+
+		// Validate the job settings
+		validateJob(parameters);
 	}
 
 	/**
-	 * Launch the job with the URL.
+	 * Return the color from the raw color of the job.
+	 *
+	 * @param color
+	 *            Raw color node from the job status.
+	 * @return The color without 'anime' flag.
+	 */
+	private String toStatus(final String color) {
+		return StringUtils.removeEnd(StringUtils.defaultString(color, "disabled"), "_anime");
+	}
+
+	/**
+	 * Validate the basic REST connectivity to Jenkins.
 	 *
 	 * @param parameters
-	 *            Parameters used to define the job
-	 * @param url
-	 *            URL added to the jenkins's URL to launch the job (can be build or buildWithParameters)
-	 * @return The result of the processing.
+	 *            the server parameters.
+	 * @return the detected Jenkins version.
 	 */
-	protected boolean build(final Map<String, String> parameters, final String url) {
-		final CurlProcessor processor = new JenkinsCurlProcessor(parameters);
-		try {
-			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
-			final String jobName = parameters.get(PARAMETER_JOB);
-			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "/job/" + jobName + "/" + url, null));
-		} finally {
-			processor.close();
+	protected String validateAdminAccess(final Map<String, String> parameters) {
+		CurlProcessor.validateAndClose(StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
+				PARAMETER_URL, "jenkins-connection");
+
+		// Check the user can log-in to Jenkins with the preempted
+		// authentication processor
+		if (getResource(parameters, "api/xml") == null) {
+			throw new ValidationJsonException(PARAMETER_USER, "jenkins-login");
 		}
+
+		// Check the user has enough rights to get the master configuration and
+		// return the version
+		final String version = getVersion(parameters);
+		if (version == null) {
+			throw new ValidationJsonException(PARAMETER_USER, "jenkins-rights");
+		}
+		return version;
+	}
+
+	/**
+	 * Validate the administration connectivity.
+	 *
+	 * @param parameters
+	 *            the administration parameters.
+	 * @return job name.
+	 */
+	protected Job validateJob(final Map<String, String> parameters) throws MalformedURLException, URISyntaxException {
+		// Get job's configuration
+		final String job = parameters.get(PARAMETER_JOB);
+		final String jobXml = getResource(parameters,
+				"api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='" + encode(job)
+						+ "']&wrapper=hudson");
+		if (jobXml == null || "<hudson/>".equals(jobXml)) {
+			// Invalid couple PKEY and id
+			throw new ValidationJsonException(PARAMETER_JOB, "jenkins-job", job);
+		}
+
+		// Retrieve description, status and display name
+		final Job result = new Job();
+		result.setName(getNodeText(jobXml, "displayName"));
+		result.setDescription(getNodeText(jobXml, "description"));
+		final String statusNode = StringUtils.defaultString(getNodeText(jobXml, "color"), "disabled");
+		result.setStatus(toStatus(statusNode));
+		result.setBuilding(statusNode.endsWith("_anime"));
+		result.setId(job);
+		return result;
 	}
 
 }
