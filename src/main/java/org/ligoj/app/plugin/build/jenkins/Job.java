@@ -15,6 +15,11 @@ import lombok.Setter;
 @Setter
 public class Job extends DescribedBean<String> {
 
+	/**
+	 * SID
+	 */
+	private static final long serialVersionUID = 1L;
+
 	private String status;
 	private boolean building;
 }
