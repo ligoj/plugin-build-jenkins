@@ -115,8 +115,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Used to launch the job for the subscription.
 	 *
-	 * @param subscription
-	 *            the subscription to use to locate the Jenkins instance.
+	 * @param subscription the subscription to use to locate the Jenkins instance.
 	 */
 	@POST
 	@Path("build/{subscription:\\d+}")
@@ -133,10 +132,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Launch the job with the URL.
 	 *
-	 * @param parameters
-	 *            Parameters used to define the job
-	 * @param url
-	 *            URL added to the jenkins's URL to launch the job (can be build or buildWithParameters)
+	 * @param parameters Parameters used to define the job
+	 * @param url        URL added to the jenkins's URL to launch the job (can be build or buildWithParameters)
 	 * @return The result of the processing.
 	 */
 	protected boolean build(final Map<String, String> parameters, final String url) {
@@ -226,11 +223,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
 	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param criteria
-	 *            the search criteria.
+	 * @param node     the node to be tested with given parameters.
+	 * @param criteria the search criteria.
 	 * @return job names matching the criteria.
+	 * @throws SAXException                 When Jenkins project cannot be validated.
+	 * @throws IOException                  When Jenkins project cannot be read.
+	 * @throws ParserConfigurationException When Jenkins project cannot be parsed.
 	 */
 	@GET
 	@Path("{node}/{criteria}")
@@ -243,12 +241,9 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
 	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param criteria
-	 *            the search criteria.
-	 * @param view
-	 *            The optional view URL.
+	 * @param node     the node to be tested with given parameters.
+	 * @param criteria the search criteria.
+	 * @param view     The optional view URL.
 	 * @return job names matching the criteria.
 	 */
 	private List<Job> findAllByName(final String node, final String criteria, final String view)
@@ -294,11 +289,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
 	 * considered.
 	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param criteria
-	 *            the search criteria.
+	 * @param node     the node to be tested with given parameters.
+	 * @param criteria the search criteria.
 	 * @return template job names matching the criteria.
+	 * @throws SAXException                 When Jenkins project cannot be validated.
+	 * @throws IOException                  When Jenkins project cannot be read.
+	 * @throws ParserConfigurationException When Jenkins project cannot be parsed.
 	 */
 	@GET
 	@Path("template/{node}/{criteria}")
@@ -312,11 +308,11 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Get Jenkins job name by id.
 	 *
-	 * @param node
-	 *            the node to be tested with given parameters.
-	 * @param id
-	 *            The job name/identifier.
+	 * @param node the node to be tested with given parameters.
+	 * @param id   The job name/identifier.
 	 * @return job names matching the criteria.
+	 * @throws MalformedURLException When the Jenkins base URL is malformed.
+	 * @throws URISyntaxException    When the built Jenkins base URL is malformed.
 	 */
 	@GET
 	@Path("{node}/job/{id}")
@@ -342,6 +338,9 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Return the last version available for Jenkins for the given repository URL.
+	 * 
+	 * @param repo The path of the index containing the available versions.
+	 * @return The last Jenkins version.
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
@@ -363,10 +362,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Return the node text without using document parser.
 	 *
-	 * @param xmlContent
-	 *            XML content.
-	 * @param node
-	 *            the node name.
+	 * @param xmlContent XML content.
+	 * @param node       the node name.
 	 * @return trimmed node text or <code>null</code>.
 	 */
 	private String getNodeText(final String xmlContent, final String node) {
@@ -381,13 +378,17 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
 	 */
-	protected String getResource(final CurlProcessor processor, final String url, final String resource) {
+	private String getResource(final CurlProcessor processor, final String url, final String resource) {
 		// Get the resource using the preempted authentication
 		return processor.get(StringUtils.appendIfMissing(url, "/") + resource);
 	}
 
 	/**
 	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
+	 * 
+	 * @param parameters The subscription parameters.
+	 * @param resource   The requested Jenkins resource.
+	 * @return The Jenkins resource's content.
 	 */
 	protected String getResource(final Map<String, String> parameters, final String resource) {
 		return getResource(new JenkinsCurlProcessor(parameters), parameters.get(PARAMETER_URL), resource);
@@ -415,8 +416,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Return the color from the raw color of the job.
 	 *
-	 * @param color
-	 *            Raw color node from the job status.
+	 * @param color Raw color node from the job status.
 	 * @return The color without 'anime' flag.
 	 */
 	private String toStatus(final String color) {
@@ -426,8 +426,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Validate the basic REST connectivity to Jenkins.
 	 *
-	 * @param parameters
-	 *            the server parameters.
+	 * @param parameters the server parameters.
 	 * @return the detected Jenkins version.
 	 */
 	protected String validateAdminAccess(final Map<String, String> parameters) {
@@ -452,9 +451,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Validate the administration connectivity.
 	 *
-	 * @param parameters
-	 *            the administration parameters.
+	 * @param parameters the administration parameters.
 	 * @return job name.
+	 * @throws MalformedURLException When the Jenkins base URL is malformed.
+	 * @throws URISyntaxException    When the built Jenkins base URL is malformed.
 	 */
 	protected Job validateJob(final Map<String, String> parameters) throws MalformedURLException, URISyntaxException {
 		// Get job's configuration
