@@ -40,7 +40,7 @@ define(function () {
 		 * Render Build Jenkins data.
 		 */
 		renderFeatures: function (subscription) {
-			var result = current.$super('renderServicelink')('home', subscription.parameters['service:build:jenkins:url'] + '/job/' + encodeURIComponent(subscription.parameters['service:build:jenkins:job']), 'service:build:jenkins:job', undefined, ' target="_blank"');
+			var result = current.$super('renderServiceLink')('home', subscription.parameters['service:build:jenkins:url'] + '/job/' + encodeURIComponent(subscription.parameters['service:build:jenkins:job']), 'service:build:jenkins:job', undefined, ' target="_blank"');
 			result += '<button class="service-build-jenkins-build btn-link"><i class="fas fa-play" data-toggle="tooltip" title="' + current.$messages['service:build:jenkins:build'] + '"></i></button>';
 			// Help
 			result += current.$super('renderServiceHelpLink')(subscription.parameters, 'service:build:help');
