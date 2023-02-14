@@ -3,30 +3,8 @@
  */
 package org.ligoj.app.plugin.build.jenkins;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.text.Format;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HttpMethod;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +30,21 @@ import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.text.Format;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Jenkins resource.
  */
@@ -71,12 +64,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public static final String KEY = URL.replace('/', ':').substring(1);
 
 	/**
-	 * Jenkins user name able to connect to instance.
+	 * Jenkins username able to connect to instance.
 	 */
 	public static final String PARAMETER_USER = KEY + ":user";
 
 	/**
-	 * Jenkins user api-token able to connect to instance.
+	 * Jenkins' user api-token able to connect to instance.
 	 */
 	public static final String PARAMETER_TOKEN = KEY + ":api-token";
 
@@ -103,7 +96,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Public server URL used to fetch the last available version of the product.
 	 */
-	@Value("${service-build-jenkins-server:http://mirrors.jenkins-ci.org}")
+	@Value("${service-build-jenkins-server:https://mirrors.jenkins-ci.org}")
 	private String publicServer;
 
 	@Autowired
@@ -137,13 +130,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @return The result of the processing.
 	 */
 	protected boolean build(final Map<String, String> parameters, final String url) {
-		final CurlProcessor processor = new JenkinsCurlProcessor(parameters);
-		try {
+		try (CurlProcessor processor = new JenkinsCurlProcessor(parameters)) {
 			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
 			final String jobName = parameters.get(PARAMETER_JOB);
 			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "/job/" + jobName + "/" + url, null));
-		} finally {
-			processor.close();
 		}
 	}
 
@@ -221,7 +211,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
+	 * Search the Jenkins's jobs matching to the given criteria. Name, display name and description are considered.
 	 *
 	 * @param node     the node to be tested with given parameters.
 	 * @param criteria the search criteria.
@@ -239,7 +229,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Search the Jenkin's jobs matching to the given criteria. Name, display name and description are considered.
+	 * Search the Jenkins's jobs matching to the given criteria. Name, display name and description are considered.
 	 *
 	 * @param node     the node to be tested with given parameters.
 	 * @param criteria the search criteria.
@@ -286,7 +276,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	/**
-	 * Search the Jenkin's template jobs matching to the given criteria. Name, display name and description are
+	 * Search the Jenkins's template jobs matching to the given criteria. Name, display name and description are
 	 * considered.
 	 *
 	 * @param node     the node to be tested with given parameters.
@@ -338,20 +328,23 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Return the last version available for Jenkins for the given repository URL.
-	 * 
+	 *
 	 * @param repo The path of the index containing the available versions.
 	 * @return The last Jenkins version.
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
 		try (CurlProcessor curl = new CurlProcessor()) {
-			final String downloadPage = ObjectUtils.defaultIfNull(curl.get(repo), "");
+			final var downloadPage = ObjectUtils.defaultIfNull(curl.get(repo), "");
 
 			// Find the last download link
-			final Matcher matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
+			final var matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
 			String lastVersion = null;
 			while (matcher.find()) {
-				lastVersion = matcher.group(1);
+				final var cVersion = matcher.group(1);
+				if (lastVersion == null || cVersion.compareTo(lastVersion) > 0) {
+					lastVersion = cVersion;
+				}
 			}
 
 			// Return the last read version
@@ -385,7 +378,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	/**
 	 * Return a Jenkins's resource. Return <code>null</code> when the resource is not found.
-	 * 
+	 *
 	 * @param parameters The subscription parameters.
 	 * @param resource   The requested Jenkins resource.
 	 * @return The Jenkins resource's content.
@@ -433,7 +426,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		CurlProcessor.validateAndClose(StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
 				PARAMETER_URL, "jenkins-connection");
 
-		// Check the user can log-in to Jenkins with the preempted
+		// Check the user can log in to Jenkins with the preempted
 		// authentication processor
 		if (getResource(parameters, "api/xml") == null) {
 			throw new ValidationJsonException(PARAMETER_USER, "jenkins-login");
