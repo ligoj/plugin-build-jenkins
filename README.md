@@ -6,7 +6,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/ligoj/plugin-build-jenkins/badge)](https://www.codefactor.io/repository/github/ligoj/plugin-build-jenkins)
 [![License](http://img.shields.io/:license-mit-blue.svg)](http://fabdouglas.mit-license.org/)
 
-[Ligoj](https://github.com/ligoj/ligoj) Jenkins CI plugin, and extending [Build plugin](https://github.com/ligoj/plugin-build)
+[Ligoj](https://github.com/ligoj/ligoj) Jenkins CI plugin, an extending [Build plugin](https://github.com/ligoj/plugin-build)
 Provides the following features :
 - Job status
 - Start a job 
