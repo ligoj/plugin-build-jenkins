@@ -18,10 +18,11 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.transaction.Transactional;
+
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,12 +74,12 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	@BeforeEach
 	void prepareData() throws IOException {
 		// Only with Spring context
-		persistEntities("csv", new Class[] { Node.class, Parameter.class, Project.class, Subscription.class,
-				ParameterValue.class, DelegateOrg.class }, StandardCharsets.UTF_8.name());
-		this.subscription = getSubscription("gStack");
+		persistEntities("csv", new Class[]{Node.class, Parameter.class, Project.class, Subscription.class,
+				ParameterValue.class, DelegateOrg.class}, StandardCharsets.UTF_8);
+		this.subscription = getSubscription("Jupiter");
 
 		// Coverage only
-		resource.getKey();
+		Assertions.assertEquals("service:build:jenkins", resource.getKey());
 	}
 
 	/**
@@ -89,14 +90,14 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	void deleteLocal() throws MalformedURLException, URISyntaxException  {
+	void deleteLocal() throws MalformedURLException, URISyntaxException {
 		resource.delete(subscription, false);
 		// nothing has been done. If remote delete is done, an exception will be
 		// thrown and this test will fail.
 	}
 
 	@Test
-	void deleteRemote() throws IOException, URISyntaxException  {
+	void deleteRemote() throws IOException, URISyntaxException {
 		addLoginAccess();
 		addAdminAccess();
 
@@ -122,9 +123,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(post(deletePath).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		httpServer.start();
 
-		Assertions.assertThrows(BusinessException.class, () -> {
-			resource.delete(subscription, true);
-		});
+		Assertions.assertThrows(BusinessException.class, () -> resource.delete(subscription, true));
 	}
 
 	@Test
@@ -160,9 +159,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 
 		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
 		parameters.put(JenkinsPluginResource.PARAMETER_JOB, "ligoj-bootstrap");
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
-			resource.validateJob(parameters);
-		}), JenkinsPluginResource.PARAMETER_JOB, "jenkins-job");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateJob(parameters)), JenkinsPluginResource.PARAMETER_JOB, "jenkins-job");
 	}
 
 	@Test
@@ -208,10 +205,10 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	void validateJobSimple() throws IOException, URISyntaxException {
 		httpServer.stubFor(get(urlEqualTo(
 				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='ligoj-bootstrap']&wrapper=hudson"))
-						.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
-								.withBody(IOUtils.toString(new ClassPathResource(
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+						.withBody(IOUtils.toString(new ClassPathResource(
 										"mock-server/jenkins/jenkins-ligoj-bootstrap-config-simple.xml").getInputStream(),
-										StandardCharsets.UTF_8))));
+								StandardCharsets.UTF_8))));
 		httpServer.start();
 
 		final Map<String, String> parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
@@ -267,20 +264,20 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	private void addJobAccess() throws IOException {
 		httpServer.stubFor(get(urlEqualTo(
 				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='ligoj-bootstrap']&wrapper=hudson"))
-						.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
-								.withBody(IOUtils.toString(
-										new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config.xml")
-												.getInputStream(),
-										StandardCharsets.UTF_8))));
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+						.withBody(IOUtils.toString(
+								new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config.xml")
+										.getInputStream(),
+								StandardCharsets.UTF_8))));
 	}
 
 	private void addJobAccessBuilding() throws IOException {
 		httpServer.stubFor(get(urlEqualTo(
 				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='ligoj-bootstrap']&wrapper=hudson"))
-						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
-								new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config-building.xml")
-										.getInputStream(),
-								StandardCharsets.UTF_8))));
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
+						new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config-building.xml")
+								.getInputStream(),
+						StandardCharsets.UTF_8))));
 	}
 
 	@Test
@@ -307,9 +304,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
-			resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
-		}), JenkinsPluginResource.PARAMETER_URL, "jenkins-connection");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_URL, "jenkins-connection");
 	}
 
 	@Test
@@ -318,9 +313,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
-			resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
-		}), JenkinsPluginResource.PARAMETER_USER, "jenkins-login");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_USER, "jenkins-login");
 	}
 
 	@Test
@@ -330,9 +323,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 				.willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
 
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
-			resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"));
-		}), JenkinsPluginResource.PARAMETER_USER, "jenkins-rights");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_USER, "jenkins-rights");
 	}
 
 	@Test
@@ -355,7 +346,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	void findAllTemplateByName() throws IOException, SAXException, ParserConfigurationException  {
+	void findAllTemplateByName() throws IOException, SAXException, ParserConfigurationException {
 		httpServer.stubFor(
 				get(urlPathEqualTo("/view/Templates/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 						.withBody(IOUtils.toString(
@@ -388,11 +379,9 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	void findByIdFail() {
 		httpServer.stubFor(get(urlEqualTo(
 				"/api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='ligoj-bootstraps']&wrapper=hudson"))
-						.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
 		httpServer.start();
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> {
-			resource.findById("service:build:jenkins:bpr", "ligoj-bootstraps");
-		}), "service:build:jenkins:job", "jenkins-job");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.findById("service:build:jenkins:bpr", "ligoj-bootstraps")), "service:build:jenkins:job", "jenkins-job");
 	}
 
 	private void addLoginAccess() throws IOException {
@@ -428,7 +417,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	@Test
-	void createFailed() throws IOException  {
+	void createFailed() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 
@@ -446,16 +435,13 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		// prepare new subscription
 		final Subscription subscription = em.find(Subscription.class, this.subscription);
 		createParameterValueTemplateJob(subscription);
-		Assertions.assertThrows(BusinessException.class, () -> {
-			this.resource.create(this.subscription);
-		});
+		Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
 	}
 
 	/**
 	 * create a parameter value for template Job definition
 	 *
-	 * @param subscription
-	 *            future parameter value linked subscription
+	 * @param subscription future parameter value linked subscription
 	 */
 	private void createParameterValueTemplateJob(final Subscription subscription) {
 		final ParameterValue parameterValue = new ParameterValue();
@@ -471,13 +457,11 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		addLoginAccess();
 		addAdminAccess();
 		httpServer.start();
-		Assertions.assertThrows(BusinessException.class, () -> {
-			this.resource.build(subscription);
-		});
+		Assertions.assertThrows(BusinessException.class, () -> this.resource.build(subscription));
 	}
 
 	@Test
-	void build() throws IOException  {
+	void build() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
 		httpServer.stubFor(
@@ -488,14 +472,11 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	void buildInvalidUrl() {
-		@SuppressWarnings("unchecked")
-		final Map<String, String> map = Mockito.mock(Map.class);
+		@SuppressWarnings("unchecked") final Map<String, String> map = Mockito.mock(Map.class);
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_TOKEN)).thenReturn("some");
 		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_URL)).thenThrow(new RuntimeException());
-		Assertions.assertThrows(RuntimeException.class, () -> {
-			this.resource.build(map, null);
-		});
+		Assertions.assertThrows(RuntimeException.class, () -> this.resource.build(map, null));
 	}
 
 	@Test
