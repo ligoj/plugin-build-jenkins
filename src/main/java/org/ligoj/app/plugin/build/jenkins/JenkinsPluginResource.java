@@ -10,8 +10,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ligoj.app.api.SubscriptionStatusWithData;
 import org.ligoj.app.iam.IamProvider;
-import org.ligoj.app.iam.UserOrg;
-import org.ligoj.app.model.Project;
 import org.ligoj.app.plugin.build.BuildResource;
 import org.ligoj.app.plugin.build.BuildServicePlugin;
 import org.ligoj.app.resource.NormalizeFormat;
@@ -32,17 +30,11 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.text.Format;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.regex.Matcher;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -113,7 +105,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@POST
 	@Path("build/{subscription:\\d+}")
 	public void build(@PathParam("subscription") final int subscription) {
-		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
+		final var parameters = subscriptionResource.getParameters(subscription);
 
 		// Check the instance is available
 		validateAdminAccess(parameters);
@@ -130,10 +122,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @return The result of the processing.
 	 */
 	protected boolean build(final Map<String, String> parameters, final String url) {
-		try (CurlProcessor processor = new JenkinsCurlProcessor(parameters)) {
-			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
-			final String jobName = parameters.get(PARAMETER_JOB);
-			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "/job/" + jobName + "/" + url, null));
+		try (var processor = new JenkinsCurlProcessor(parameters)) {
+			final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+			final var jobName = parameters.get(PARAMETER_JOB);
+			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "job/" + jobName + "/" + url, null));
 		}
 	}
 
@@ -147,24 +139,24 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@Override
 	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
 			throws MalformedURLException, URISyntaxException {
-		final SubscriptionStatusWithData nodeStatusWithData = new SubscriptionStatusWithData();
+		final var nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
 		return nodeStatusWithData;
 	}
 
 	@Override
 	public void create(final int subscription) throws IOException, URISyntaxException {
-		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
+		final var parameters = subscriptionResource.getParameters(subscription);
 		// Validate the node settings
 		validateAdminAccess(parameters);
 
 		// Get Template configuration
-		final String templateJob = parameters.get(PARAMETER_TEMPLATE_JOB);
-		final String templateConfigXml = getResource(parameters, "job/" + encode(templateJob) + "/config.xml");
+		final var templateJob = parameters.get(PARAMETER_TEMPLATE_JOB);
+		final var templateConfigXml = getResource(parameters, "job/" + encode(templateJob) + "/config.xml");
 
 		// update template
-		final Project project = subscriptionRepository.findOneExpected(subscription).getProject();
-		final UserOrg teamLeader = iamProvider[0].getConfiguration().getUserRepository()
+		final var project = subscriptionRepository.findOneExpected(subscription).getProject();
+		final var teamLeader = iamProvider[0].getConfiguration().getUserRepository()
 				.findById(project.getTeamLeader());
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
@@ -174,11 +166,11 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 				.replaceFirst("(<description>).*?(</description>)", "$1" + project.getDescription() + "$2");
 
 		// create new job
-		final String job = parameters.get(PARAMETER_JOB);
-		final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
-		final CurlRequest curlRequest = new CurlRequest(HttpMethod.POST,
-				jenkinsBaseUrl + "/createItem?name=" + encode(job), configXml, "Content-Type:application/xml");
-		try (CurlProcessor curl = new JenkinsCurlProcessor(parameters)) {
+		final var job = parameters.get(PARAMETER_JOB);
+		final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+		final var curlRequest = new CurlRequest(HttpMethod.POST,
+				jenkinsBaseUrl + "createItem?name=" + encode(job), configXml, "Content-Type:application/xml");
+		try (var curl = new JenkinsCurlProcessor(parameters)) {
 			if (!curl.process(curlRequest)) {
 				throw new BusinessException("Creating the job for the subscription {} failed.", subscription);
 			}
@@ -189,16 +181,16 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public void delete(final int subscription, final boolean deleteRemoteData)
 			throws MalformedURLException, URISyntaxException {
 		if (deleteRemoteData) {
-			final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
+			final var parameters = subscriptionResource.getParameters(subscription);
 			// Validate the node settings
 			validateAdminAccess(parameters);
 
 			// delete the job
-			final String job = parameters.get(PARAMETER_JOB);
-			final String jenkinsBaseUrl = parameters.get(PARAMETER_URL);
-			final CurlRequest curlRequest = new CurlRequest(HttpMethod.POST,
-					jenkinsBaseUrl + "/job/" + encode(job) + "/doDelete", StringUtils.EMPTY);
-			try (CurlProcessor curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
+			final var job = parameters.get(PARAMETER_JOB);
+			final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+			final var curlRequest = new CurlRequest(HttpMethod.POST,
+					jenkinsBaseUrl + "job/" + encode(job) + "/doDelete", StringUtils.EMPTY);
+			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
 				if (!curl.process(curlRequest)) {
 					throw new BusinessException("Deleting the job for the subscription {} failed.", subscription);
 				}
@@ -240,23 +232,23 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			throws SAXException, IOException, ParserConfigurationException {
 
 		// Prepare the context, an ordered set of jobs
-		final Format format = new NormalizeFormat();
-		final String formatCriteria = format.format(criteria);
-		final Map<String, String> parameters = pvResource.getNodeParameters(node);
+		final var format = new NormalizeFormat();
+		final var formatCriteria = format.format(criteria);
+		final var parameters = pvResource.getNodeParameters(node);
 
 		// Get the jobs and parse them
-		final String url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
-		final String jobsAsXml = StringUtils.defaultString(getResource(parameters, url), "<a/>");
-		final InputStream jobsAsInput = IOUtils.toInputStream(jobsAsXml, StandardCharsets.UTF_8);
-		final Element hudson = (Element) xml.parse(jobsAsInput).getFirstChild();
-		final Map<String, Job> result = new TreeMap<>();
-		for (final Element jobNode : DomUtils.getChildElementsByTagName(hudson, "job")) {
+		final var url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
+		final var jobsAsXml = Objects.toString(getResource(parameters, url), "<a/>");
+		final var jobsAsInput = IOUtils.toInputStream(jobsAsXml, StandardCharsets.UTF_8);
+		final var hudson = (Element) xml.parse(jobsAsInput).getFirstChild();
+		final var result = new TreeMap<String, Job>();
+		for (final var jobNode : DomUtils.getChildElementsByTagName(hudson, "job")) {
 
 			// Extract string data from this job
-			final String name = StringUtils.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "name"));
-			final String displayName = StringUtils
+			final var name = StringUtils.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "name"));
+			final var displayName = StringUtils
 					.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "displayName"));
-			final String description = StringUtils
+			final var description = StringUtils
 					.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "description"));
 
 			// Check the values of this job
@@ -264,7 +256,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 					|| format.format(description).contains(formatCriteria)) {
 
 				// Retrieve description and display name
-				final Job job = new Job();
+				final var job = new Job();
 				job.setName(StringUtils.trimToNull(displayName));
 				job.setDescription(StringUtils.trimToNull(description));
 				job.setId(name);
@@ -310,7 +302,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
 			throws MalformedURLException, URISyntaxException {
 		// Prepare the context, an ordered set of jobs
-		final Map<String, String> parameters = pvResource.getNodeParameters(node);
+		final var parameters = pvResource.getNodeParameters(node);
 		parameters.put(PARAMETER_JOB, id);
 		return validateJob(parameters);
 	}
@@ -360,7 +352,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @return trimmed node text or <code>null</code>.
 	 */
 	private String getNodeText(final String xmlContent, final String node) {
-		final Matcher matcher = Pattern.compile("<" + node + ">([^<]*)</" + node + ">")
+		final var matcher = Pattern.compile("<" + node + ">([^<]*)</" + node + ">")
 				.matcher(ObjectUtils.defaultIfNull(xmlContent, ""));
 		if (matcher.find()) {
 			return StringUtils.trimToNull(matcher.group(1));
@@ -397,7 +389,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Override
 	public void link(final int subscription) throws MalformedURLException, URISyntaxException {
-		final Map<String, String> parameters = subscriptionResource.getParameters(subscription);
+		final var parameters = subscriptionResource.getParameters(subscription);
 
 		// Validate the node settings
 		validateAdminAccess(parameters);
@@ -413,7 +405,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @return The color without 'anime' flag.
 	 */
 	private String toStatus(final String color) {
-		return StringUtils.removeEnd(StringUtils.defaultString(color, "disabled"), "_anime");
+		return StringUtils.removeEnd(Objects.toString(color, "disabled"), "_anime");
 	}
 
 	/**
@@ -434,7 +426,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// Check the user has enough rights to get the master configuration and
 		// return the version
-		final String version = getVersion(parameters);
+		final var version = getVersion(parameters);
 		if (version == null) {
 			throw new ValidationJsonException(PARAMETER_USER, "jenkins-rights");
 		}
@@ -451,8 +443,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	protected Job validateJob(final Map<String, String> parameters) throws MalformedURLException, URISyntaxException {
 		// Get job's configuration
-		final String job = parameters.get(PARAMETER_JOB);
-		final String jobXml = getResource(parameters,
+		final var job = parameters.get(PARAMETER_JOB);
+		final var jobXml = getResource(parameters,
 				"api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='" + encode(job)
 						+ "']&wrapper=hudson");
 		if (jobXml == null || "<hudson/>".equals(jobXml)) {
@@ -461,10 +453,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		}
 
 		// Retrieve description, status and display name
-		final Job result = new Job();
+		final var result = new Job();
 		result.setName(getNodeText(jobXml, "displayName"));
 		result.setDescription(getNodeText(jobXml, "description"));
-		final String statusNode = StringUtils.defaultString(getNodeText(jobXml, "color"), "disabled");
+		final var statusNode = Objects.toString(getNodeText(jobXml, "color"), "disabled");
 		result.setStatus(toStatus(statusNode));
 		result.setBuilding(statusNode.endsWith("_anime"));
 		result.setId(job);
