@@ -41,7 +41,7 @@ define(function () {
 		 */
 		renderFeatures: function (subscription) {
 			var result = current.$super('renderServiceLink')('home', subscription.parameters['service:build:jenkins:url'] + '/job/' + encodeURIComponent(subscription.parameters['service:build:jenkins:job']), 'service:build:jenkins:job', undefined, ' target="_blank"');
-			result += '<button class="service-build-jenkins-build btn-link"><i class="fas fa-play" data-toggle="tooltip" title="' + current.$messages['service:build:jenkins:build'] + '"></i></button>';
+			result += `<button type="button" class="service-build-jenkins-build btn-link"><i class="fas fa-play" data-toggle="tooltip" title="${current.$messages['service:build:jenkins:build']}"></i></button>`;
 			// Help
 			result += current.$super('renderServiceHelpLink')(subscription.parameters, 'service:build:help');
 			return result;
@@ -121,20 +121,17 @@ define(function () {
 		 * Launch the jenkins's job for the associated subscription's id
 		 */
 		serviceBuildJenkinsBuild: function () {
-			var subscription = $(this).closest('tr').attr('data-id');
-			var job = current.$super('subscriptions').fnGetData($(this).closest('tr')[0]);
-			var $button = $(this);
+		debugger;
+			const $button = $(this);
+			const subscription = $button.closest('tr').attr('data-id');
+			const job = current.$super('subscriptions').fnGetData($button.closest('tr')[0]);
 			$button.attr('disabled', 'disabled').find('.fa').addClass('faa-flash animated');
 			$.ajax({
 				dataType: 'json',
 				url: REST_PATH + 'service/build/jenkins/build/' + subscription,
 				type: 'POST',
-				success: function () {
-					notifyManager.notify(Handlebars.compile(current.$messages['jenkins-build-job-success'])((job.parameters && job.parameters['service:build:jenkins:job']) || subscription));
-				},
-				complete: function () {
-					$button.removeAttr('disabled').find('.fa').removeClass('faa-flash animated');
-				}
+				success: () => notifyManager.notify(Handlebars.compile(current.$messages['jenkins-build-job-success'])((job.parameters && job.parameters['service:build:jenkins:job']) || subscription)),
+				complete: () => $button.removeAttr('disabled').find('.fa').removeClass('faa-flash animated'),
 			});
 		}
 	};
