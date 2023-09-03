@@ -40,11 +40,15 @@ define(function () {
 		 * Render Build Jenkins data.
 		 */
 		renderFeatures: function (subscription) {
-			var result = current.$super('renderServiceLink')('home', subscription.parameters['service:build:jenkins:url'] + '/job/' + encodeURIComponent(subscription.parameters['service:build:jenkins:job']), 'service:build:jenkins:job', undefined, ' target="_blank"');
-			result += `<button type="button" class="service-build-jenkins-build btn-link"><i class="fas fa-play" data-toggle="tooltip" title="${current.$messages['service:build:jenkins:build']}"></i></button>`;
-			// Help
-			result += current.$super('renderServiceHelpLink')(subscription.parameters, 'service:build:help');
-			return result;
+			return `
+			    ${current.$super('renderServiceLink')('home',
+			        `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodeURIComponent(subscription.parameters['service:build:jenkins:job'])}`,
+			        'service:build:jenkins:job', undefined, ' target="_blank"')}
+			    <button type="button" class="service-build-jenkins-build btn-link hidden">
+                    <i class="fas fa-play" data-toggle="tooltip" title="${current.$messages['service:build:jenkins:build']}"></i>
+                </button>
+                ${current.$super('renderServiceHelpLink')(subscription.parameters, 'service:build:help')}
+            `;
 		},
 
 		/**
@@ -53,19 +57,52 @@ define(function () {
 		renderDetailsKey: function (subscription) {
 			return current.$super('generateCarousel')(subscription, [
 				['service:build:jenkins:job', current.renderKey(subscription)],
-				['name', subscription.data.job.name || subscription.parameters['service:build:jenkins:job']
-				]
+				['name', subscription.data.job.name || subscription.parameters['service:build:jenkins:job']]
 			], 1);
 		},
+
+
+        toStatusHtml: function(subscription, job) {
+ 			let title = (current.$messages['service:build:jenkins:status-' + job.status] || job.status) + (job.building ? ' (' + current.$messages['service:build:jenkins:building'] + ')' : '');
+ 			let clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' ' + (job.building ? 'fas fa-sync-alt fa-spin' : current.jobStatusTypo[job.status] || 'fas fa-circle');
+ 			return `<div class="status-wrapper"><i data-toggle="tooltip" title="${title}" class="status ${clazz}"></i></div>`;
+        },
 
 		/**
 		 * Display the status of the job, including the building state
 		 */
-		renderDetailsFeatures: function (subscription) {
-			var job = subscription.data.job;
-			var title = (current.$messages['service:build:jenkins:status-' + job.status] || job.status) + (job.building ? ' (' + current.$messages['service:build:jenkins:building'] + ')' : '');
-			var clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' ' + (job.building ? 'fas fa-sync-alt fa-spin' : current.jobStatusTypo[job.status] || 'fas fa-circle');
-			return '<i data-toggle="tooltip" title="' + title + '" class="' + clazz + '"></i>';
+		renderDetailsFeatures: function (subscription, _$tr ,$feature) {
+            let job = subscription.data.job;
+            const branches = subscription.data.job?.jobs;
+			if (branches?.length) {
+			    const baseUrl = `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodeURIComponent(job.id)}`;
+			    $feature.addClass('has-branches');
+
+                // Multi-branch mode
+                const branchesHtml = branches.map(b=> {
+                     let additionalPath = '';
+                     let tooltip=`${b.pullRequestBranch?'PullRequest':'Branch'}<br>${current.$messages.name}: ${b.id}${typeof b.name === 'string' && b.name !== b.id ? ` (${b.name})`:''}`
+                     if (b.pullRequestBranch) {
+                         additionalPath=`/view/change-requests/job/${encodeURIComponent(b.id)}/`;
+                     } else {
+                         additionalPath=`/job/${encodeURIComponent(b.id)}/`;
+                     }
+                     const branchLink = current.$super('renderServiceLink')(b.pullRequestBranch?'hashtag':'code-branch', `${baseUrl}${additionalPath}`, tooltip, b.id, ' target=\'_blank\'', 'link')
+                     return `
+                     <div class="branch">
+                        <button type="button" class="service-build-jenkins-build btn-link">
+                            <i class="fas fa-play" data-toggle="tooltip" title="${current.$messages['service:build:jenkins:build']}"></i>
+                        </button>
+                        ${branchLink}
+                        ${current.toStatusHtml(subscription, job)}
+                     </div>`;
+                }).join(' ');
+                return `<div class="branches">${branchesHtml}</div>`;
+            } else {
+                $feature.find('.service-build-jenkins-build').removeClass('hidden');
+            }
+            // Single mode
+            return current.toStatusHtml(subscription, job);
 		},
 
 		configureSubscriptionParameters: function (configuration) {
@@ -121,7 +158,6 @@ define(function () {
 		 * Launch the jenkins's job for the associated subscription's id
 		 */
 		serviceBuildJenkinsBuild: function () {
-		debugger;
 			const $button = $(this);
 			const subscription = $button.closest('tr').attr('data-id');
 			const job = current.$super('subscriptions').fnGetData($button.closest('tr')[0]);

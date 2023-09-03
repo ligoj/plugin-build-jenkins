@@ -1,9 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<hudson>
-	<job>
-		<displayName>Ligoj - Bootstrap</displayName>
-		<description>Any description</description>
-		<name>ligoj-bootstrap</name>
-		<color>yellow_anime</color>
-	</job>
-</hudson>
+<job>
+    <displayName>Ligoj - Bootstrap</displayName>
+    <description>Any description</description>
+    <name>ligoj-bootstrap</name>
+    <color>yellow_anime</color>
+    <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <displayName>main</displayName>
+        <name>main</name>
+        <color>red</color>
+        <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
+            <branch>
+                <head _class="org.jenkinsci.plugins.github_branch_source.BranchSCMHead"/>
+            </branch>
+        </property>
+        <lastBuild>
+            <timestamp>1693000000000</timestamp>
+        </lastBuild>
+    </job>
+    <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <displayName>PR-no-date</displayName>
+        <name>PR-2</name>
+        <color>blue_anime</color>
+        <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
+            <branch>
+                <head _class="org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead"/>
+            </branch>
+        </property>
+    </job>
+    <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <displayName>PR-over</displayName>
+        <name>PR-2</name>
+        <color>blue_anime</color>
+        <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
+            <branch>
+                <head _class="org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead"/>
+            </branch>
+        </property>
+        <lastBuild>
+            <timestamp>0</timestamp>
+        </lastBuild>
+    </job>
+    <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <displayName>PR-2</displayName>
+        <name>PR-2</name>
+        <color>blue_anime</color>
+        <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
+            <branch>
+                <head _class="org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead"/>
+            </branch>
+        </property>
+        <lastBuild>
+            <timestamp>1693000000001</timestamp>
+        </lastBuild>
+    </job>
+    <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <displayName>PR-old</displayName>
+        <name>PR-old</name>
+        <color>disabled</color>
+    </job>
+</job>

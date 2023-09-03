@@ -3,10 +3,11 @@
  */
 package org.ligoj.app.plugin.build.jenkins;
 
-import org.ligoj.bootstrap.core.DescribedBean;
-
 import lombok.Getter;
 import lombok.Setter;
+import org.ligoj.bootstrap.core.DescribedBean;
+
+import java.util.List;
 
 /**
  * Jenkins job definition.
@@ -22,4 +23,16 @@ public class Job extends DescribedBean<String> {
 
 	private String status;
 	private boolean building;
+
+	/**
+	 * Optional sub-jobs, may be <code>null</code>.
+	 */
+	private List<Job> jobs;
+
+	/**
+	 * When <code>true</code>, this branch is related to a PR.
+	 */
+	private boolean pullRequestBranch;
+
+	private Long lastBuild;
 }

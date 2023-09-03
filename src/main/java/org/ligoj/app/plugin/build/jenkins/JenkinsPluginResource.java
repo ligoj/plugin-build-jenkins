@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.ligoj.app.api.SubscriptionStatusWithData;
 import org.ligoj.app.iam.IamProvider;
 import org.ligoj.app.plugin.build.BuildResource;
@@ -21,6 +22,7 @@ import org.ligoj.bootstrap.core.curl.HeaderHttpResponseCallback;
 import org.ligoj.bootstrap.core.curl.OnlyRedirectHttpResponseCallback;
 import org.ligoj.bootstrap.core.resource.BusinessException;
 import org.ligoj.bootstrap.core.validation.ValidationJsonException;
+import org.ligoj.bootstrap.resource.system.configuration.ConfigurationResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Jenkins resource.
@@ -54,6 +57,11 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * Plug-in key.
 	 */
 	public static final String KEY = URL.replace('/', ':').substring(1);
+
+	/**
+	 * Default maximum returned branches.
+	 */
+	public static final int DEFAULT_MAX_BRANCHES = 10;
 
 	/**
 	 * Jenkins username able to connect to instance.
@@ -81,6 +89,11 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public static final String PARAMETER_URL = KEY + ":url";
 
 	/**
+	 * Maximum returned branches.
+	 */
+	public static final String PARAMETER_MAX_BRANCHES = KEY + ":max-branches";
+
+	/**
 	 * Jenkins version callback to extract the header.
 	 */
 	private static final HeaderHttpResponseCallback VERSION_CALLBACK = new HeaderHttpResponseCallback("x-jenkins");
@@ -96,6 +109,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Autowired
 	protected XmlUtils xml;
+
+	@Autowired
+	@Deprecated
+	private ConfigurationResource configuration;
 
 	/**
 	 * Used to launch the job for the subscription.
@@ -138,7 +155,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Override
 	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
-			throws MalformedURLException, URISyntaxException {
+			throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
 		final var nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
 		return nodeStatusWithData;
@@ -240,30 +257,16 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		final var url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
 		final var jobsAsXml = Objects.toString(getResource(parameters, url), "<a/>");
 		final var jobsAsInput = IOUtils.toInputStream(jobsAsXml, StandardCharsets.UTF_8);
-		final var hudson = (Element) xml.parse(jobsAsInput).getFirstChild();
+		final var hudson = xml.parse(jobsAsInput).getDocumentElement();
 		final var result = new TreeMap<String, Job>();
-		for (final var jobNode : DomUtils.getChildElementsByTagName(hudson, "job")) {
 
-			// Extract string data from this job
-			final var name = StringUtils.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "name"));
-			final var displayName = StringUtils
-					.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "displayName"));
-			final var description = StringUtils
-					.trimToEmpty(DomUtils.getChildElementValueByTagName(jobNode, "description"));
-
-			// Check the values of this job
-			if (format.format(name).contains(formatCriteria) || format.format(displayName).contains(formatCriteria)
-					|| format.format(description).contains(formatCriteria)) {
-
-				// Retrieve description and display name
-				final var job = new Job();
-				job.setName(StringUtils.trimToNull(displayName));
-				job.setDescription(StringUtils.trimToNull(description));
-				job.setId(name);
-				job.setStatus(toStatus(DomUtils.getChildElementValueByTagName(jobNode, "color")));
-				result.put(format.format(ObjectUtils.defaultIfNull(job.getName(), job.getId())), job);
-			}
-		}
+		DomUtils.getChildElementsByTagName(hudson, "job").stream()
+				.map(this::newJob)
+				.filter(job ->
+						format.format(job.getId()).contains(formatCriteria)
+								|| format.format(Objects.toString(job.getName(), "")).contains(formatCriteria)
+								|| format.format(Objects.toString(job.getDescription(), "")).contains(formatCriteria))
+				.forEach(job -> result.put(format.format(ObjectUtils.defaultIfNull(job.getName(), job.getId())), job));
 		return new ArrayList<>(result.values());
 	}
 
@@ -300,7 +303,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@Path("{node}/job/{id}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
-			throws MalformedURLException, URISyntaxException {
+			throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
 		// Prepare the context, an ordered set of jobs
 		final var parameters = pvResource.getNodeParameters(node);
 		parameters.put(PARAMETER_JOB, id);
@@ -326,7 +329,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
-		try (CurlProcessor curl = new CurlProcessor()) {
+		try (var curl = new CurlProcessor()) {
 			final var downloadPage = ObjectUtils.defaultIfNull(curl.get(repo), "");
 
 			// Find the last download link
@@ -342,22 +345,6 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			// Return the last read version
 			return lastVersion;
 		}
-	}
-
-	/**
-	 * Return the node text without using document parser.
-	 *
-	 * @param xmlContent XML content.
-	 * @param node       the node name.
-	 * @return trimmed node text or <code>null</code>.
-	 */
-	private String getNodeText(final String xmlContent, final String node) {
-		final var matcher = Pattern.compile("<" + node + ">([^<]*)</" + node + ">")
-				.matcher(ObjectUtils.defaultIfNull(xmlContent, ""));
-		if (matcher.find()) {
-			return StringUtils.trimToNull(matcher.group(1));
-		}
-		return null;
 	}
 
 	/**
@@ -388,7 +375,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void link(final int subscription) throws MalformedURLException, URISyntaxException {
+	public void link(final int subscription) throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
 		final var parameters = subscriptionResource.getParameters(subscription);
 
 		// Validate the node settings
@@ -396,16 +383,6 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// Validate the job settings
 		validateJob(parameters);
-	}
-
-	/**
-	 * Return the color from the raw color of the job.
-	 *
-	 * @param color Raw color node from the job status.
-	 * @return The color without 'anime' flag.
-	 */
-	private String toStatus(final String color) {
-		return StringUtils.removeEnd(Objects.toString(color, "disabled"), "_anime");
 	}
 
 	/**
@@ -441,26 +418,64 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @throws MalformedURLException When the Jenkins base URL is malformed.
 	 * @throws URISyntaxException    When the built Jenkins base URL is malformed.
 	 */
-	protected Job validateJob(final Map<String, String> parameters) throws MalformedURLException, URISyntaxException {
+	protected Job validateJob(final Map<String, String> parameters) throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
 		// Get job's configuration
 		final var job = parameters.get(PARAMETER_JOB);
-		final var jobXml = getResource(parameters,
-				"api/xml?depth=1&tree=jobs[displayName,name,color]&xpath=hudson/job[name='" + encode(job)
-						+ "']&wrapper=hudson");
-		if (jobXml == null || "<hudson/>".equals(jobXml)) {
+		final var jobAsXml = getResource(parameters,
+				"api/xml?tree=jobs[displayName,name,color,lastBuild[timestamp],jobs[displayName,name,color,lastBuild[timestamp],property[branch[head]]]]&xpath=hudson/job[name='" + encode(job)
+						+ "']");
+		if (jobAsXml == null || "<hudson/>".equals(jobAsXml)) {
 			// Invalid couple PKEY and id
 			throw new ValidationJsonException(PARAMETER_JOB, "jenkins-job", job);
 		}
 
-		// Retrieve description, status and display name
-		final var result = new Job();
-		result.setName(getNodeText(jobXml, "displayName"));
-		result.setDescription(getNodeText(jobXml, "description"));
-		final var statusNode = Objects.toString(getNodeText(jobXml, "color"), "disabled");
-		result.setStatus(toStatus(statusNode));
-		result.setBuilding(statusNode.endsWith("_anime"));
-		result.setId(job);
+		final var jobsAsInput = IOUtils.toInputStream(jobAsXml, StandardCharsets.UTF_8);
+		final var root = xml.parse(jobsAsInput).getDocumentElement();
+		final var result = newJob(root);
+		final int maxBranches = NumberUtils.toInt(getParameter(parameters, PARAMETER_MAX_BRANCHES, String.valueOf(DEFAULT_MAX_BRANCHES)));
+		result.setJobs(DomUtils.getChildElementsByTagName(root, "job").stream()
+				.map(this::newJob)
+				.filter(j -> !"disabled".equals(j.getStatus()))
+				.sorted((b1, b2) -> {
+					// Sort the branches by their activities
+					if (b1.getLastBuild() == null) {
+						return 1;
+					}
+					if (b2.getLastBuild() == null) {
+						return -1;
+					}
+					return (int)(b2.getLastBuild() - b1.getLastBuild());
+				})
+				.limit(maxBranches)
+				.collect(Collectors.toList()));
 		return result;
 	}
 
+	private Job newJob(final Element root) {
+		final var result = new Job();
+
+		// Extract string data from this job
+		result.setId(StringUtils.trimToEmpty(DomUtils.getChildElementValueByTagName(root, "name")));
+		result.setName(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "displayName")));
+		result.setDescription(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "description")));
+		result.setLastBuild(Optional.ofNullable(DomUtils.getChildElementByTagName(root, "lastBuild"))
+				.map(l -> DomUtils.getChildElementValueByTagName(l, "timestamp"))
+				.map(Long::valueOf).orElse(null));
+
+		// Retrieve description, status, display name and branch type
+		final var statusNode = Objects.toString(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "color")), "disabled");
+		result.setStatus(StringUtils.removeEnd(statusNode, "_anime"));
+		result.setBuilding(statusNode.endsWith("_anime"));
+		result.setPullRequestBranch(DomUtils.getChildElementsByTagName(root, "property").stream()
+				.filter(p -> "org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty".equals(p.getAttribute("_class")))
+				.flatMap(p -> DomUtils.getChildElementsByTagName(p, "branch").stream())
+				.flatMap(b -> DomUtils.getChildElementsByTagName(b, "head").stream())
+				.anyMatch(h -> "org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead".equals(h.getAttribute("_class"))));
+		return result;
+	}
+
+	@Deprecated
+	private String getParameter(final Map<String, String> parameters, final String parameter, final String defaultValue) {
+		return Objects.requireNonNullElseGet(parameters.get(parameter), () -> configuration.get(parameter, defaultValue));
+	}
 }

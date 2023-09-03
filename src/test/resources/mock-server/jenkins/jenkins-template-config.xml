@@ -1,36 +1,33 @@
-
 <?xml version='1.0' encoding='UTF-8'?>
 <maven2-moduleset plugin="maven-plugin@2.14">
   <actions/>
-  <description></description>
-  <displayName>Template - Projet Maven</displayName>
+    <displayName>Template - Projet Maven</displayName>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.security.AuthorizationMatrixProperty>
       <permission>hudson.model.Item.Cancel:ligoj-saas</permission>
-      <permission>hudson.model.Item.Cancel:alocquet</permission>
+      <permission>hudson.model.Item.Cancel:admin-test</permission>
       <permission>hudson.model.Item.Read:ligoj-saas</permission>
-      <permission>hudson.model.Item.Read:alocquet</permission>
+      <permission>hudson.model.Item.Read:admin-test</permission>
       <permission>hudson.model.Item.Workspace:ligoj-saas</permission>
-      <permission>hudson.model.Item.Workspace:alocquet</permission>
+      <permission>hudson.model.Item.Workspace:admin-test</permission>
       <permission>hudson.model.Item.Build:ligoj-saas</permission>
-      <permission>hudson.model.Item.Build:alocquet</permission>
+      <permission>hudson.model.Item.Build:admin-test</permission>
       <permission>hudson.scm.SCM.Tag:ligoj-saas</permission>
-      <permission>hudson.scm.SCM.Tag:alocquet</permission>
+      <permission>hudson.scm.SCM.Tag:admin-test</permission>
       <permission>hudson.model.Item.Configure:ligoj-saas</permission>
-      <permission>hudson.model.Item.Configure:alocquet</permission>
+      <permission>hudson.model.Item.Configure:admin-test</permission>
       <permission>hudson.model.Item.Discover:ligoj-saas</permission>
-      <permission>hudson.model.Item.Discover:alocquet</permission>
+      <permission>hudson.model.Item.Discover:admin-test</permission>
       <permission>hudson.model.Item.ViewStatus:ligoj-saas</permission>
-      <permission>hudson.model.Item.ViewStatus:alocquet</permission>
+      <permission>hudson.model.Item.ViewStatus:admin-test</permission>
       <permission>hudson.model.Run.Update:ligoj-saas</permission>
-      <permission>hudson.model.Run.Update:alocquet</permission>
+      <permission>hudson.model.Run.Update:admin-test</permission>
     </hudson.security.AuthorizationMatrixProperty>
     <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.4.2">
       <gitLabConnection>https://delivery.ligoj.fr/gitlab/</gitLabConnection>
     </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
     <org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty plugin="gitlab-logo@1.0.1">
-      <repositoryName></repositoryName>
     </org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty>
     <jenkins.model.BuildDiscarderProperty>
       <strategy class="hudson.tasks.LogRotator">
@@ -53,11 +50,6 @@
         <ignoreExternalsOption>true</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <excludedRegions></excludedRegions>
-    <includedRegions></includedRegions>
-    <excludedUsers></excludedUsers>
-    <excludedRevprop></excludedRevprop>
-    <excludedCommitMessages></excludedCommitMessages>
     <workspaceUpdater class="hudson.scm.subversion.UpdateWithRevertUpdater"/>
     <ignoreDirPropChanges>false</ignoreDirPropChanges>
     <filterChangelog>false</filterChangelog>

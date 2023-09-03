@@ -1,9 +1,43 @@
-.masonry-container .node.service-build-jenkins.mode-th-list table.subscriptions th.features {
-	width: 52px;
-}
-.masonry-container .node.service-build-jenkins.mode-th-large table.subscriptions th.features {
-	width: 50px;
-}
 .masonry-container .node.service-build-jenkins table.subscriptions th.features {
-	width: 45px;
+	width: 120px;
+}
+.masonry-container .node.service-build-jenkins table.subscriptions .features>.details .branches .status{
+    margin-left: -12px;
+}
+.masonry-container .node.service-build-jenkins.mode-th-large table.subscriptions th.features>.details .branches .branch {
+    padding-right: 13px;
+}
+
+.subscriptions td.features.has-branches .details {
+    float: none;
+}
+.service-build-jenkins .features .details .branches {
+    cursor: default;
+    font-size: 10px;
+    margin-top: -3px;
+}
+.service-build-jenkins .features .details .branches .status-wrapper {
+    display: inline;
+    position: absolute;
+    right: 0;
+}
+
+.service-build-jenkins .features>.details .branches .branch {
+    text-wrap: nowrap;
+    padding-right: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+}
+
+.service-build-jenkins .features>.details .branches .link:hover {
+    overflow-x: visible;
+    position: relative;
+}
+
+.service-build-jenkins .features>.details .branches .status {
+    margin-left: -14px;
+}
+.service-build-jenkins .features>.details .status {
+    padding-top: 5px;
 }
