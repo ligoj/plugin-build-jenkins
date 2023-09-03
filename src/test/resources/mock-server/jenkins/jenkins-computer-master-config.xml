@@ -12,7 +12,7 @@
   <useSecurity>true</useSecurity>
   <authorizationStrategy class="hudson.security.ProjectMatrixAuthorizationStrategy">
     <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Create:fdaugan</permission>
-    <permission>hudson.model.Computer.Build:alocquet</permission>
+    <permission>hudson.model.Computer.Build:admin-test</permission>
     <permission>hudson.model.Computer.Build:fdaugan</permission>
     <permission>hudson.model.Computer.Configure:abalan</permission>
     <permission>hudson.model.Computer.Configure:jdoe</permission>
@@ -55,85 +55,6 @@
   <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
   <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
   <clouds/>
-  <slaves>
-    <slave>
-      <name>CASSIOPEE</name>
-      <description>Esclave pour la construction du projet Cassiopee (version du trunk)</description>
-      <remoteFS>/home/ci-cassiopee</remoteFS>
-      <numExecutors>1</numExecutors>
-      <mode>EXCLUSIVE</mode>
-      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-      <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.6">
-        <host>172.16.36.83</host>
-        <port>22</port>
-        <credentialsId>95b20048-3740-4853-8bf2-f6df98f0aa22</credentialsId>
-      </launcher>
-      <label>hudson-cassiopee</label>
-      <nodeProperties>
-        <hudson.tools.ToolLocationNodeProperty>
-          <locations>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.tasks.Maven$MavenInstallation$DescriptorImpl</type>
-              <name>maven</name>
-              <home>/home/ci-cassiopee/apache-maven-2.2.1</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.model.JDK$DescriptorImpl</type>
-              <name>jdk6</name>
-              <home>/opt/jboss/jdk1.6.0_16</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-          </locations>
-        </hudson.tools.ToolLocationNodeProperty>
-      </nodeProperties>
-    </slave>
-    <slave>
-      <name>WINDOWS 2003 - 1</name>
-      <description>Windows 2003 avc .NET SDK 7.1</description>
-      <remoteFS>c:\ci\s-jenkins</remoteFS>
-      <numExecutors>1</numExecutors>
-      <mode>EXCLUSIVE</mode>
-      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-      <launcher class="hudson.os.windows.ManagedWindowsServiceLauncher" plugin="windows-slaves@1.0">
-        <userName>administrator</userName>
-        <password>eiuaEtac9mvOSq+3xi0jaS6MeWbpm0CN0BAi7mJWXuc=</password>
-        <javaPath>C:\ci\apps\sun-jdk1.7.0_25-x64\bin\java</javaPath>
-        <account class="hudson.os.windows.ManagedWindowsServiceAccount$LocalSystem"/>
-        <host>172.16.36.65</host>
-      </launcher>
-      <label>.Net</label>
-      <nodeProperties>
-        <hudson.tools.ToolLocationNodeProperty>
-          <locations>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.model.JDK$DescriptorImpl</type>
-              <name>jdk6</name>
-              <home>C:\ci\apps\sun-jdk1.6.0_31-x64</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.tasks.Maven$MavenInstallation$DescriptorImpl</type>
-              <name>maven34</name>
-              <home>C:\ci\apps\apache-maven-3.0.4</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.tasks.Maven$MavenInstallation$DescriptorImpl</type>
-              <name>maven3</name>
-              <home>C:\ci\apps\apache-maven-3.0.4</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.tasks.Maven$MavenInstallation$DescriptorImpl</type>
-              <name>maven</name>
-              <home>C:\ci\apps\apache-maven-3.0.4</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-            <hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-              <type>hudson.model.JDK$DescriptorImpl</type>
-              <name>jdk7</name>
-              <home>C:\ci\apps\sun-jdk1.7.0_25-x64</home>
-            </hudson.tools.ToolLocationNodeProperty_-ToolLocation>
-          </locations>
-        </hudson.tools.ToolLocationNodeProperty>
-      </nodeProperties>
-    </slave>
-  </slaves>
   <quietPeriod>5</quietPeriod>
   <scmCheckoutRetryCount>1</scmCheckoutRetryCount>
   <views>
@@ -153,31 +74,8 @@
       <jobNames>
         <comparator class="hudson.util.CaseInsensitiveComparator"/>
         <string>Forge</string>
-        <string>FRANCE TELECOM - CCE</string>
-        <string>FRANCE TELECOM - CCE (Production)</string>
-        <string>FRANCE TELECOM - CCE (Recette)</string>
         <string>Ligoj - Bootstrap</string>
-        <string>Ligoj - JEE Framework GWT</string>
-        <string>Ligoj - PPM</string>
         <string>Ligoj - Report</string>
-        <string>Ligoj - Vigireport</string>
-        <string>GROUPAMA - KPI</string>
-        <string>iPhone - POC</string>
-        <string>IRIS - Nouvel Arrivant</string>
-        <string>LA POSTE - Gestion Reexpedition</string>
-        <string>LA POSTE - Import Export BNCA</string>
-        <string>LA POSTE - Ma Nouvelle Adresse</string>
-        <string>LA POSTE - Reexpedition Autorisation</string>
-        <string>LA POSTE - Reexpedition en ligne Entreprise</string>
-        <string>LA POSTE - Reexpedition en ligne Personnel</string>
-        <string>LA POSTE - Util Eboutique</string>
-        <string>MINISTERE SANTE - SARA</string>
-        <string>MINISTERE SANTE - SARA (LIVRABLE)</string>
-        <string>Royal Air Maroc - Histo</string>
-        <string>Royal Air Maroc - Main Courante</string>
-        <string>SNCF - Octopus</string>
-        <string>Sonar - Test cases</string>
-        <string>TOYOTA - A2D</string>
       </jobNames>
       <jobFilters/>
       <columns>
@@ -225,126 +123,6 @@
       </topPortlets>
       <bottomPortlets/>
     </hudson.plugins.view.dashboard.Dashboard>
-    <hudson.plugins.view.dashboard.Dashboard plugin="dashboard-view@2.9.4">
-      <owner class="hudson" reference="../../.."/>
-      <name>Audit</name>
-      <filterExecutors>false</filterExecutors>
-      <filterQueue>false</filterQueue>
-      <properties class="hudson.model.View$PropertyList"/>
-      <jobNames>
-        <comparator class="hudson.util.CaseInsensitiveComparator"/>
-        <string>BNP - WCE</string>
-        <string>Conseil_Regional_Bourgogne_-_PAQ</string>
-        <string>FranceAgriMer - RS</string>
-        <string>IRA - Concours</string>
-        <string>PPK_-_Portail</string>
-        <string>TOYOTA - POC BackboneJS</string>
-      </jobNames>
-      <jobFilters/>
-      <columns>
-        <hudson.views.StatusColumn/>
-        <hudson.views.WeatherColumn/>
-        <hudson.views.JobColumn/>
-        <hudson.views.LastSuccessColumn/>
-        <hudson.views.LastFailureColumn/>
-        <hudson.views.LastDurationColumn/>
-        <hudson.views.BuildButtonColumn/>
-        <hudson.plugins.projectstats.column.NumBuildsColumn plugin="project-stats-plugin@0.4"/>
-        <org.jenkins.ci.plugins.progress__bar.ProgressBarColumn plugin="progress-bar-column-plugin@1.0"/>
-      </columns>
-      <recurse>false</recurse>
-      <useCssStyle>false</useCssStyle>
-      <includeStdJobList>true</includeStdJobList>
-      <leftPortletWidth>50%</leftPortletWidth>
-      <rightPortletWidth>50%</rightPortletWidth>
-      <leftPortlets/>
-      <rightPortlets/>
-      <topPortlets/>
-      <bottomPortlets/>
-    </hudson.plugins.view.dashboard.Dashboard>
-    <listView>
-      <owner class="hudson" reference="../../.."/>
-      <name>POC</name>
-      <filterExecutors>false</filterExecutors>
-      <filterQueue>false</filterQueue>
-      <properties class="hudson.model.View$PropertyList"/>
-      <jobNames>
-        <comparator class="hudson.util.CaseInsensitiveComparator" reference="../../../hudson.plugins.view.dashboard.Dashboard[2]/jobNames/comparator"/>
-        <string>iPhone - POC</string>
-        <string>TOYOTA - POC BackboneJS</string>
-      </jobNames>
-      <jobFilters/>
-      <columns>
-        <hudson.views.StatusColumn/>
-        <hudson.views.WeatherColumn/>
-        <hudson.views.JobColumn/>
-        <hudson.views.LastSuccessColumn/>
-        <hudson.views.LastFailureColumn/>
-        <hudson.views.BuildButtonColumn/>
-        <hudson.plugins.projectstats.column.NumBuildsColumn plugin="project-stats-plugin@0.4"/>
-        <org.jenkins.ci.plugins.progress__bar.ProgressBarColumn plugin="progress-bar-column-plugin@1.0"/>
-      </columns>
-      <recurse>false</recurse>
-    </listView>
-    <listView>
-      <owner class="hudson" reference="../../.."/>
-      <name>LA POSTE</name>
-      <filterExecutors>false</filterExecutors>
-      <filterQueue>false</filterQueue>
-      <properties class="hudson.model.View$PropertyList"/>
-      <jobNames>
-        <comparator class="hudson.util.CaseInsensitiveComparator"/>
-        <string>LA POSTE - Gestion Reexpedition</string>
-        <string>LA POSTE - Import Export BNCA</string>
-        <string>LA POSTE - Ma Nouvelle Adresse</string>
-        <string>LA POSTE - Reexpedition Autorisation</string>
-        <string>LA POSTE - Reexpedition en ligne Entreprise</string>
-        <string>LA POSTE - Reexpedition en ligne Personnel</string>
-        <string>LA POSTE - Util Eboutique</string>
-      </jobNames>
-      <jobFilters/>
-      <columns>
-        <hudson.views.StatusColumn/>
-        <hudson.views.WeatherColumn/>
-        <hudson.views.JobColumn/>
-        <hudson.views.LastSuccessColumn/>
-        <hudson.views.LastFailureColumn/>
-        <hudson.views.LastDurationColumn/>
-        <hudson.views.BuildButtonColumn/>
-        <hudson.plugins.projectstats.column.NumBuildsColumn plugin="project-stats-plugin@0.4"/>
-        <org.jenkins.ci.plugins.progress__bar.ProgressBarColumn plugin="progress-bar-column-plugin@1.0"/>
-      </columns>
-      <includeRegex>LA POSTE.*</includeRegex>
-      <recurse>false</recurse>
-    </listView>
-    <listView>
-      <owner class="hudson" reference="../../.."/>
-      <name>RHA</name>
-      <description>RHA Projects</description>
-      <filterExecutors>false</filterExecutors>
-      <filterQueue>false</filterQueue>
-      <properties class="hudson.model.View$PropertyList"/>
-      <jobNames>
-        <comparator class="hudson.util.CaseInsensitiveComparator"/>
-        <string>Conseil_Regional_Bourgogne_-_PAQ</string>
-        <string>IRA - Concours</string>
-        <string>PPK_-_Portail</string>
-        <string>Square_Connexion_-_BO_Tootici</string>
-      </jobNames>
-      <jobFilters/>
-      <columns>
-        <hudson.views.StatusColumn/>
-        <hudson.views.WeatherColumn/>
-        <hudson.views.JobColumn/>
-        <hudson.views.LastSuccessColumn/>
-        <hudson.views.LastFailureColumn/>
-        <hudson.views.LastDurationColumn/>
-        <hudson.views.BuildButtonColumn/>
-        <hudson.plugins.projectstats.column.NumBuildsColumn plugin="project-stats-plugin@0.4"/>
-        <org.jenkins.ci.plugins.progress__bar.ProgressBarColumn plugin="progress-bar-column-plugin@1.0"/>
-      </columns>
-      <recurse>false</recurse>
-    </listView>
   </views>
   <primaryView>Tous</primaryView>
   <slaveAgentPort>0</slaveAgentPort>
