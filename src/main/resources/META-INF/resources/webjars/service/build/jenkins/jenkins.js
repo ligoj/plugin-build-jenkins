@@ -65,7 +65,7 @@ define(function () {
 
         toStatusHtml: function(subscription, job) {
  			let title = (current.$messages['service:build:jenkins:status-' + job.status] || job.status) + (job.building ? ' (' + current.$messages['service:build:jenkins:building'] + ')' : '');
- 			let clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' ' + (job.building ? 'fas fa-sync-alt fa-spin' : current.jobStatusTypo[job.status] || 'fas fa-circle');
+ 			let clazz = (current.jobStatusColor[job.status] || 'text-muted') + ' fa-fw ' + (job.building ? 'fas fa-sync-alt fa-spin' : current.jobStatusTypo[job.status] || 'fas fa-circle');
  			return `<div class="status-wrapper"><i data-toggle="tooltip" title="${title}" class="status ${clazz}"></i></div>`;
         },
 
@@ -89,7 +89,7 @@ define(function () {
                      } else {
                          additionalPath=`/job/${encodeURIComponent(b.name)}/`;
                      }
-                     const branchLink = current.$super('renderServiceLink')(b.pullRequestBranch?'hashtag':'code-branch', `${baseUrl}${additionalPath}`, tooltip, b.id, ' target=\'_blank\'', 'link')
+                     const branchLink = current.$super('renderServiceLink')( (b.pullRequestBranch?'hashtag':'code-branch') + ' fa-fw', `${baseUrl}${additionalPath}`, tooltip, b.id, ' target=\'_blank\'', 'link')
                      return `
                      <div class="branch">
                         <button type="button" class="service-build-jenkins-build btn-link">
