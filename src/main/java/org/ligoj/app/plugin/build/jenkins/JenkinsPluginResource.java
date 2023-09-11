@@ -5,10 +5,12 @@ package org.ligoj.app.plugin.build.jenkins;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.stream.Streams;
 import org.ligoj.app.api.SubscriptionStatusWithData;
 import org.ligoj.app.iam.IamProvider;
 import org.ligoj.app.plugin.build.BuildResource;
@@ -27,18 +29,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.xml.DomUtils;
+import org.springframework.web.util.UriUtils;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Jenkins resource.
@@ -46,6 +48,7 @@ import java.util.stream.Collectors;
 @Path(JenkinsPluginResource.URL)
 @Service
 @Produces(MediaType.APPLICATION_JSON)
+@Slf4j
 public class JenkinsPluginResource extends AbstractToolPluginResource implements BuildServicePlugin {
 
 	/**
@@ -97,6 +100,26 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * Jenkins version callback to extract the header.
 	 */
 	private static final HeaderHttpResponseCallback VERSION_CALLBACK = new HeaderHttpResponseCallback("x-jenkins");
+
+	/**
+	 * Maximum depth for job searches.
+	 */
+	public static final String PARAMETER_MAX_DEPTH = KEY + ":max-depth";
+
+	/**
+	 * Maximum Jenkins depth.
+	 */
+	private static final int MAX_DEPTH = 5;
+
+	/**
+	 * Marker of recursive query text.
+	 */
+	private static final String XML_RECURRING_MARKER = "__XML_RECURRING__";
+
+	/**
+	 * Template query for Jenkins XML tree.
+	 */
+	private static final String XML_TEMPLATE_QUERY = "displayName,fullName,color,lastBuild[timestamp],property[branch[head]]" + XML_RECURRING_MARKER;
 
 	/**
 	 * Public server URL used to fetch the last available version of the product.
@@ -155,14 +178,14 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Override
 	public SubscriptionStatusWithData checkSubscriptionStatus(final Map<String, String> parameters)
-			throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
+			throws IOException, ParserConfigurationException, SAXException {
 		final var nodeStatusWithData = new SubscriptionStatusWithData();
 		nodeStatusWithData.put("job", validateJob(parameters));
 		return nodeStatusWithData;
 	}
 
 	@Override
-	public void create(final int subscription) throws IOException, URISyntaxException {
+	public void create(final int subscription) throws IOException {
 		final var parameters = subscriptionResource.getParameters(subscription);
 		// Validate the node settings
 		validateAdminAccess(parameters);
@@ -195,8 +218,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void delete(final int subscription, final boolean deleteRemoteData)
-			throws MalformedURLException, URISyntaxException {
+	public void delete(final int subscription, final boolean deleteRemoteData) {
 		if (deleteRemoteData) {
 			final var parameters = subscriptionResource.getParameters(subscription);
 			// Validate the node settings
@@ -215,8 +237,8 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		}
 	}
 
-	private String encode(final String job) throws MalformedURLException, URISyntaxException {
-		return new URI("http", job, "").toURL().getPath();
+	private String encode(final String job) {
+		return UriUtils.encode(job, "UTF-8");
 	}
 
 	/**
@@ -247,6 +269,15 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	private List<Job> findAllByName(final String node, final String criteria, final String view)
 			throws SAXException, IOException, ParserConfigurationException {
+		// Build Jenkins query
+		var query = "jobs[" + XML_TEMPLATE_QUERY + "]";
+		final int maxDepth = configuration.get(PARAMETER_MAX_DEPTH, MAX_DEPTH);
+
+		for (var depth = 1; depth < maxDepth; depth++) {
+			query = query.replace(XML_RECURRING_MARKER, ",jobs[" + XML_TEMPLATE_QUERY + "]");
+		}
+		// End of the recursion
+		query = query.replace(XML_RECURRING_MARKER, "");
 
 		// Prepare the context, an ordered set of jobs
 		final var format = new NormalizeFormat();
@@ -254,20 +285,22 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		final var parameters = pvResource.getNodeParameters(node);
 
 		// Get the jobs and parse them
-		final var url = StringUtils.trimToEmpty(view) + "api/xml?tree=jobs[name,displayName,description,color]";
+		final var url = StringUtils.trimToEmpty(view) + "api/xml?tree=" + query;
 		final var jobsAsXml = Objects.toString(getResource(parameters, url), "<a/>");
 		final var jobsAsInput = IOUtils.toInputStream(jobsAsXml, StandardCharsets.UTF_8);
 		final var hudson = xml.parse(jobsAsInput).getDocumentElement();
 		final var result = new TreeMap<String, Job>();
-
-		DomUtils.getChildElementsByTagName(hudson, "job").stream()
-				.map(this::newJob)
+		getRecursiveJobs(hudson)
 				.filter(job ->
-						format.format(job.getId()).contains(formatCriteria)
+						format.format(Objects.toString(job.getId(), "")).contains(formatCriteria)
 								|| format.format(Objects.toString(job.getName(), "")).contains(formatCriteria)
 								|| format.format(Objects.toString(job.getDescription(), "")).contains(formatCriteria))
 				.forEach(job -> result.put(format.format(ObjectUtils.defaultIfNull(job.getName(), job.getId())), job));
 		return new ArrayList<>(result.values());
+	}
+
+	private Stream<Job> getRecursiveJobs(Element e) {
+		return Stream.concat(Stream.of(newJob(e)), DomUtils.getChildElementsByTagName(e, "job").stream().flatMap(this::getRecursiveJobs));
 	}
 
 	/**
@@ -297,13 +330,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @param id   The job name/identifier.
 	 * @return job names matching the criteria.
 	 * @throws MalformedURLException When the Jenkins base URL is malformed.
-	 * @throws URISyntaxException    When the built Jenkins base URL is malformed.
 	 */
 	@GET
 	@Path("{node}/job/{id}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Job findById(@PathParam("node") final String node, @PathParam("id") final String id)
-			throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
+			throws IOException, ParserConfigurationException, SAXException {
 		// Prepare the context, an ordered set of jobs
 		final var parameters = pvResource.getNodeParameters(node);
 		parameters.put(PARAMETER_JOB, id);
@@ -375,7 +407,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void link(final int subscription) throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
+	public void link(final int subscription) throws IOException, ParserConfigurationException, SAXException {
 		final var parameters = subscriptionResource.getParameters(subscription);
 
 		// Validate the node settings
@@ -416,14 +448,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @param parameters the administration parameters.
 	 * @return job name.
 	 * @throws MalformedURLException When the Jenkins base URL is malformed.
-	 * @throws URISyntaxException    When the built Jenkins base URL is malformed.
 	 */
-	protected Job validateJob(final Map<String, String> parameters) throws IOException, URISyntaxException, ParserConfigurationException, SAXException {
-		// Get job's configuration
+	protected Job validateJob(final Map<String, String> parameters) throws IOException, ParserConfigurationException, SAXException {
 		final var job = parameters.get(PARAMETER_JOB);
 		final var jobAsXml = getResource(parameters,
-				"api/xml?tree=jobs[displayName,name,color,lastBuild[timestamp],jobs[displayName,name,color,lastBuild[timestamp],property[branch[head]]]]&xpath=hudson/job[name='" + encode(job)
-						+ "']");
+				"job/" + Streams.of(job.split("/")).map(this::encode).collect(Collectors.joining("/job/"))
+						+ "/api/xml?tree=" + XML_TEMPLATE_QUERY.replace(XML_RECURRING_MARKER, ",jobs[" + XML_TEMPLATE_QUERY).replace(XML_RECURRING_MARKER, "]"));
 		if (jobAsXml == null || "<hudson/>".equals(jobAsXml)) {
 			// Invalid couple PKEY and id
 			throw new ValidationJsonException(PARAMETER_JOB, "jenkins-job", job);
@@ -444,26 +474,30 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 					if (b2.getLastBuild() == null) {
 						return -1;
 					}
-					return (int)(b2.getLastBuild() - b1.getLastBuild());
+					return (int) (b2.getLastBuild() - b1.getLastBuild());
 				})
 				.limit(maxBranches)
 				.collect(Collectors.toList()));
 		return result;
 	}
 
+	private String getNodeContent(final Element root, final String tag) {
+		return StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, tag));
+	}
+
 	private Job newJob(final Element root) {
 		final var result = new Job();
 
 		// Extract string data from this job
-		result.setId(StringUtils.trimToEmpty(DomUtils.getChildElementValueByTagName(root, "name")));
-		result.setName(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "displayName")));
-		result.setDescription(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "description")));
+		result.setId(Optional.ofNullable(getNodeContent(root, "fullName")).orElseGet(() -> getNodeContent(root, "name")));
+		result.setName(getNodeContent(root, "displayName"));
+		result.setDescription(getNodeContent(root, "description"));
 		result.setLastBuild(Optional.ofNullable(DomUtils.getChildElementByTagName(root, "lastBuild"))
-				.map(l -> DomUtils.getChildElementValueByTagName(l, "timestamp"))
+				.map(l -> getNodeContent(l, "timestamp"))
 				.map(Long::valueOf).orElse(null));
 
 		// Retrieve description, status, display name and branch type
-		final var statusNode = Objects.toString(StringUtils.trimToNull(DomUtils.getChildElementValueByTagName(root, "color")), "disabled");
+		final var statusNode = Objects.toString(getNodeContent(root, "color"), "disabled");
 		result.setStatus(StringUtils.removeEnd(statusNode, "_anime"));
 		result.setBuilding(statusNode.endsWith("_anime"));
 		result.setPullRequestBranch(DomUtils.getChildElementsByTagName(root, "property").stream()

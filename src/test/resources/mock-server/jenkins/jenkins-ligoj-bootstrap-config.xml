@@ -2,11 +2,11 @@
 <job>
     <displayName>Ligoj - Bootstrap</displayName>
     <description>Any description</description>
-    <name>ligoj-bootstrap</name>
+    <fullName>ligoj-bootstrap</fullName>
     <color>yellow</color>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
+        <fullName>main</fullName>
         <displayName>main</displayName>
-        <name>main</name>
         <color>red</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -19,7 +19,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-2</displayName>
-        <name>PR-2</name>
+        <fullName>PR-2</fullName>
         <color>blue_anime</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -32,7 +32,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-old</displayName>
-        <name>PR-old</name>
+        <fullName>PR-old</fullName>
         <color>disabled</color>
     </job>
 </job>

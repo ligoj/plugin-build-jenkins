@@ -40,9 +40,10 @@ define(function () {
 		 * Render Build Jenkins data.
 		 */
 		renderFeatures: function (subscription) {
+		    const encodedJob = (subscription.parameters['service:build:jenkins:job']||'').split('/').map(encodeURIComponent).join('/');
 			return `
 			    ${current.$super('renderServiceLink')('home',
-			        `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodeURIComponent(subscription.parameters['service:build:jenkins:job'])}`,
+			        `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodedJob}`,
 			        'service:build:jenkins:job', undefined, ' target="_blank"')}
 			    <button type="button" class="service-build-jenkins-build btn-link hidden">
                     <i class="fas fa-play" data-toggle="tooltip" title="${current.$messages['service:build:jenkins:build']}"></i>
@@ -75,7 +76,8 @@ define(function () {
             let job = subscription.data.job;
             const branches = subscription.data.job?.jobs;
 			if (branches?.length) {
-			    const baseUrl = `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodeURIComponent(job.id)}`;
+		        const encodedJob = job.id.split('/').map(encodeURIComponent).join('/job/');
+			    const baseUrl = `${subscription.parameters['service:build:jenkins:url'].replace(/\/$/,'')}/job/${encodedJob}`;
 			    $feature.addClass('has-branches');
 
                 // Multi-branch mode
@@ -83,9 +85,9 @@ define(function () {
                      let additionalPath = '';
                      let tooltip=`${b.pullRequestBranch?'PullRequest':'Branch'}<br>${current.$messages.name}: ${b.id}${typeof b.name === 'string' && b.name !== b.id ? ` (${b.name})`:''}`
                      if (b.pullRequestBranch) {
-                         additionalPath=`/view/change-requests/job/${encodeURIComponent(b.id)}/`;
+                         additionalPath=`/view/change-requests/job/${encodeURIComponent(b.name)}/`;
                      } else {
-                         additionalPath=`/job/${encodeURIComponent(b.id)}/`;
+                         additionalPath=`/job/${encodeURIComponent(b.name)}/`;
                      }
                      const branchLink = current.$super('renderServiceLink')(b.pullRequestBranch?'hashtag':'code-branch', `${baseUrl}${additionalPath}`, tooltip, b.id, ' target=\'_blank\'', 'link')
                      return `

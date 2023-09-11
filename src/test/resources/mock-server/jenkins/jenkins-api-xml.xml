@@ -8,12 +8,12 @@
 
     </description>
     <job>
-        <name>ligoj-bootstrap</name>
+        <fullName>ligoj-bootstrap</fullName>
         <url>https://kloudy.io/jenkins/job/ligoj-bootstrap/</url>
         <color>blue</color>
     </job>
     <job>
-        <name>ligoj-saas-admin</name>
+        <fullName>ligoj-saas-admin</fullName>
         <url>https://kloudy.io/jenkins/job/ligoj-saas-admin/</url>
         <color>blue</color>
     </job>

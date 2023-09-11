@@ -2,11 +2,11 @@
 <job>
     <displayName>Ligoj - Bootstrap</displayName>
     <description>Any description</description>
-    <name>ligoj-bootstrap</name>
+    <fullName>ligoj-bootstrap</fullName>
     <color>yellow_anime</color>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>main</displayName>
-        <name>main</name>
+        <fullName>main</fullName>
         <color>red</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -19,7 +19,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-no-date</displayName>
-        <name>PR-2</name>
+        <fullName>PR-2</fullName>
         <color>blue_anime</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -29,7 +29,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-over</displayName>
-        <name>PR-2</name>
+        <fullName>PR-2</fullName>
         <color>blue_anime</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -42,7 +42,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-2</displayName>
-        <name>PR-2</name>
+        <fullName>PR-2</fullName>
         <color>blue_anime</color>
         <property _class="org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty">
             <branch>
@@ -55,7 +55,7 @@
     </job>
     <job _class="org.jenkinsci.plugins.workflow.job.WorkflowJob">
         <displayName>PR-old</displayName>
-        <name>PR-old</name>
+        <fullName>PR-old</fullName>
         <color>disabled</color>
     </job>
 </job>

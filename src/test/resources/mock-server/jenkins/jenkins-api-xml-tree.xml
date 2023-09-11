@@ -4,23 +4,23 @@
             /&gt;
         </description>
         <displayName>Ligoj - Bootstrap (release)</displayName>
-        <name>ligoj-bootstrap-release</name>
+        <fullName>ligoj-bootstrap-release</fullName>
     </job>
     <job>
         <description>CRON - Project RSE</description>
         <displayName>Ligoj - Cron - RSE</displayName>
-        <name>ligoj-cron-rse</name>
+        <fullName>ligoj-cron-rse</fullName>
     </job>
     <job>
         <name>other-1</name>
     </job>
     <job>
         <displayName>Ligoj - Other2</displayName>
-        <name>other-2</name>
+        <fullName>other-2</fullName>
     </job>
     <job>
         <description>Ligoj - Other3</description>
         <displayName>Other3</displayName>
-        <name>other-3</name>
+        <fullName>other-3</fullName>
     </job>
 </hudson>
