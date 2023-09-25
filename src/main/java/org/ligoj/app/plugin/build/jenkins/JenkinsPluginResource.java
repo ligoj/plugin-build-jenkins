@@ -24,7 +24,6 @@ import org.ligoj.bootstrap.core.curl.HeaderHttpResponseCallback;
 import org.ligoj.bootstrap.core.curl.OnlyRedirectHttpResponseCallback;
 import org.ligoj.bootstrap.core.resource.BusinessException;
 import org.ligoj.bootstrap.core.validation.ValidationJsonException;
-import org.ligoj.bootstrap.resource.system.configuration.ConfigurationResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -132,10 +131,6 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Autowired
 	protected XmlUtils xml;
-
-	@Autowired
-	@Deprecated
-	private ConfigurationResource configuration;
 
 	/**
 	 * Used to launch the job for the subscription.
@@ -508,8 +503,4 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		return result;
 	}
 
-	@Deprecated
-	private String getParameter(final Map<String, String> parameters, final String parameter, final String defaultValue) {
-		return Objects.requireNonNullElseGet(parameters.get(parameter), () -> configuration.get(parameter, defaultValue));
-	}
 }
