@@ -83,7 +83,8 @@ define(function () {
                 // Multi-branch mode
                 const branchesHtml = branches.map(b=> {
                      let additionalPath = '';
-                     let tooltip=`${b.pullRequestBranch?'PullRequest':'Branch'}<br>${current.$messages.name}: ${b.id}${typeof b.name === 'string' && b.name !== b.id ? ` (${b.name})`:''}`
+                     const branchName = (typeof b.name === 'string' && b.name !== b.id) ? ` (${b.name})`:''
+                     let tooltip=`${b.pullRequestBranch?'PullRequest':'Branch'}<br>${current.$messages.name}: ${b.id}${branchName}`
                      if (b.pullRequestBranch) {
                          additionalPath=`/view/change-requests/job/${encodeURIComponent(b.name)}/`;
                      } else {
@@ -168,7 +169,7 @@ define(function () {
 				dataType: 'json',
 				url: REST_PATH + 'service/build/jenkins/build/' + subscription,
 				type: 'POST',
-				success: () => notifyManager.notify(Handlebars.compile(current.$messages['jenkins-build-job-success'])((job.parameters && job.parameters['service:build:jenkins:job']) || subscription)),
+				success: () => notifyManager.notify(Handlebars.compile(current.$messages['jenkins-build-job-success'])(job.parameters?.['service:build:jenkins:job'] || subscription)),
 				complete: () => $button.removeAttr('disabled').find('.fa').removeClass('faa-flash animated'),
 			});
 		}

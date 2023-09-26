@@ -195,7 +195,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 				.findById(project.getTeamLeader());
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
-				.replaceAll("ligoj-saas", project.getPkey())
+				.replace("ligoj-saas", project.getPkey())
 				.replaceAll("someone@sample.org", teamLeader.getMails().get(0))
 				.replaceFirst("(<displayName>).*?(</displayName>)", "$1" + project.getName() + "$2")
 				.replaceFirst("(<description>).*?(</description>)", "$1" + project.getDescription() + "$2");
@@ -324,7 +324,9 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @param node the node to be tested with given parameters.
 	 * @param id   The job name/identifier.
 	 * @return job names matching the criteria.
-	 * @throws MalformedURLException When the Jenkins base URL is malformed.
+	 * @throws IOException When the Jenkins base URL is malformed.
+	 * @throws ParserConfigurationException When the XML content is malformed.
+	 * @throws SAXException When the XML content is malformed.
 	 */
 	@GET
 	@Path("{node}/job/{id}")

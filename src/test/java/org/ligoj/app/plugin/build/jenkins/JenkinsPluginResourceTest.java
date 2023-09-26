@@ -321,8 +321,9 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	void validateAdminAccessConnectivityFail() {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
-
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_URL, "jenkins-connection");
+		final var parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(parameters)),
+				JenkinsPluginResource.PARAMETER_URL, "jenkins-connection");
 	}
 
 	@Test
@@ -330,8 +331,9 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/login")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(get(urlEqualTo("/api/xml")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
-
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_USER, "jenkins-login");
+		final var parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(parameters)),
+				JenkinsPluginResource.PARAMETER_USER, "jenkins-login");
 	}
 
 	@Test
@@ -340,8 +342,9 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/computer/(master)/config.xml"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_BAD_GATEWAY)));
 		httpServer.start();
-
-		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(pvResource.getNodeParameters("service:build:jenkins:bpr"))), JenkinsPluginResource.PARAMETER_USER, "jenkins-rights");
+		final var parameters = pvResource.getNodeParameters("service:build:jenkins:bpr");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.validateAdminAccess(parameters)),
+				JenkinsPluginResource.PARAMETER_USER, "jenkins-rights");
 	}
 
 	@Test
