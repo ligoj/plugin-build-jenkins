@@ -63,7 +63,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	@BeforeEach
 	void prepareData() throws IOException {
 		// Only with Spring context
-		persistEntities("csv", new Class[]{Node.class, Parameter.class, Project.class, Subscription.class,
+		persistEntities("csv", new Class<?>[]{Node.class, Parameter.class, Project.class, Subscription.class,
 				ParameterValue.class, DelegateOrg.class}, StandardCharsets.UTF_8);
 		this.subscription = getSubscription("Jupiter");
 		configurationResource.put(JenkinsPluginResource.PARAMETER_MAX_DEPTH, "2");
@@ -242,11 +242,11 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		Assertions.assertEquals(building, job.isBuilding());
 
 		// Check branches
-		Assertions.assertTrue(job.getJobs().get(0).isPullRequestBranch());
-		Assertions.assertTrue(job.getJobs().get(0).isBuilding());
-		Assertions.assertEquals("PR-2", job.getJobs().get(0).getId());
-		Assertions.assertEquals("blue", job.getJobs().get(0).getStatus());
-		Assertions.assertEquals(1693000000001L, job.getJobs().get(0).getLastBuild());
+		Assertions.assertTrue(job.getJobs().getFirst().isPullRequestBranch());
+		Assertions.assertTrue(job.getJobs().getFirst().isBuilding());
+		Assertions.assertEquals("PR-2", job.getJobs().getFirst().getId());
+		Assertions.assertEquals("blue", job.getJobs().getFirst().getStatus());
+		Assertions.assertEquals(1693000000001L, job.getJobs().getFirst().getLastBuild());
 
 		Assertions.assertFalse(job.getJobs().get(1).isPullRequestBranch());
 		Assertions.assertFalse(job.getJobs().get(1).isBuilding());
