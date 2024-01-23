@@ -3,11 +3,11 @@
  */
 package org.ligoj.app.plugin.build.jenkins;
 
-import java.util.Map;
-
-import org.ligoj.bootstrap.core.curl.DefaultHttpResponseCallback;
+import org.ligoj.bootstrap.core.curl.CurlProcessor;
 import org.ligoj.bootstrap.core.curl.HttpResponseCallback;
 import org.ligoj.bootstrap.core.curl.SessionAuthCurlProcessor;
+
+import java.util.Map;
 
 /**
  * Jenkins processor.
@@ -21,7 +21,7 @@ public class JenkinsCurlProcessor extends SessionAuthCurlProcessor {
 	 *            the Jenkins parameters.
 	 */
 	public JenkinsCurlProcessor(final Map<String, String> parameters) {
-		this(parameters, new DefaultHttpResponseCallback());
+		this(parameters, CurlProcessor.DEFAULT_CALLBACK);
 	}
 
 	/**
