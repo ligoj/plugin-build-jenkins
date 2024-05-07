@@ -180,7 +180,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	}
 
 	@Override
-	public void create(final int subscription) throws IOException {
+	public void create(final int subscription) {
 		final var parameters = subscriptionResource.getParameters(subscription);
 		// Validate the node settings
 		validateAdminAccess(parameters);
@@ -196,7 +196,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		final String configXml = templateConfigXml
 				.replaceFirst("<disabled>true</disabled>", "<disabled>false</disabled>")
 				.replace("ligoj-saas", project.getPkey())
-				.replaceAll("someone@sample.org", teamLeader.getMails().get(0))
+				.replaceAll("someone@sample.org", teamLeader.getMails().getFirst())
 				.replaceFirst("(<displayName>).*?(</displayName>)", "$1" + project.getName() + "$2")
 				.replaceFirst("(<description>).*?(</description>)", "$1" + project.getDescription() + "$2");
 
