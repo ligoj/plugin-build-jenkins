@@ -473,8 +473,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 					}
 					return (int) (b2.getLastBuild() - b1.getLastBuild());
 				})
-				.limit(maxBranches)
-				.collect(Collectors.toList()));
+				.limit(maxBranches).toList());
 		return result;
 	}
 
