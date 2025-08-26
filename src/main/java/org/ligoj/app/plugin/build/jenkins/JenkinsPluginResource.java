@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.stream.Streams;
 import org.ligoj.app.api.SubscriptionStatusWithData;
@@ -158,7 +159,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	protected boolean build(final Map<String, String> parameters, final String url) {
 		try (var processor = new JenkinsCurlProcessor(parameters)) {
-			final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+			final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
 			final var jobName = parameters.get(PARAMETER_JOB);
 			return processor.process(new CurlRequest("POST", jenkinsBaseUrl + "job/" + jobName + "/" + url, null));
 		}
@@ -202,7 +203,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// create new job
 		final var job = parameters.get(PARAMETER_JOB);
-		final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+		final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
 		final var curlRequest = new CurlRequest(HttpMethod.POST,
 				jenkinsBaseUrl + "createItem?name=" + encode(job), configXml, "Content-Type:application/xml");
 		try (var curl = new JenkinsCurlProcessor(parameters)) {
@@ -221,7 +222,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 			// delete the job
 			final var job = parameters.get(PARAMETER_JOB);
-			final var jenkinsBaseUrl = StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+			final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
 			final var curlRequest = new CurlRequest(HttpMethod.POST,
 					jenkinsBaseUrl + "job/" + encode(job) + "/doDelete", StringUtils.EMPTY);
 			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
@@ -290,7 +291,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 						format.format(Objects.toString(job.getId(), "")).contains(formatCriteria)
 								|| format.format(Objects.toString(job.getName(), "")).contains(formatCriteria)
 								|| format.format(Objects.toString(job.getDescription(), "")).contains(formatCriteria))
-				.forEach(job -> result.put(format.format(ObjectUtils.defaultIfNull(job.getName(), job.getId())), job));
+				.forEach(job -> result.put(format.format(ObjectUtils.getIfNull(job.getName(), job.getId())), job));
 		return new ArrayList<>(result.values());
 	}
 
@@ -359,7 +360,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	protected String getLastVersion(final String repo) {
 		// Get the download index
 		try (var curl = new CurlProcessor()) {
-			final var downloadPage = ObjectUtils.defaultIfNull(curl.get(repo), "");
+			final var downloadPage = ObjectUtils.getIfNull(curl.get(repo), "");
 
 			// Find the last download link
 			final var matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
@@ -381,7 +382,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 */
 	private String getResource(final CurlProcessor processor, final String url, final String resource) {
 		// Get the resource using the preempted authentication
-		return processor.get(StringUtils.appendIfMissing(url, "/") + resource);
+		return processor.get(Strings.CS.appendIfMissing(url, "/") + resource);
 	}
 
 	/**
@@ -421,7 +422,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	 * @return the detected Jenkins version.
 	 */
 	protected String validateAdminAccess(final Map<String, String> parameters) {
-		CurlProcessor.validateAndClose(StringUtils.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
+		CurlProcessor.validateAndClose(Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/") + "login",
 				PARAMETER_URL, "jenkins-connection");
 
 		// Check the user can log in to Jenkins with the preempted
@@ -494,7 +495,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 		// Retrieve description, status, display name and branch type
 		final var statusNode = Objects.toString(getNodeContent(root, "color"), "disabled");
-		result.setStatus(StringUtils.removeEnd(statusNode, "_anime"));
+		result.setStatus(Strings.CS.removeEnd(statusNode, "_anime"));
 		result.setBuilding(statusNode.endsWith("_anime"));
 		result.setPullRequestBranch(DomUtils.getChildElementsByTagName(root, "property").stream()
 				.filter(p -> "org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty".equals(p.getAttribute("_class")))
