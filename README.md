@@ -1,4 +1,4 @@
-# :link: Ligoj Jenkins CI plugin [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ligoj.plugin/plugin-build-jenkins/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ligoj.plugin/plugin-build-jenkins)
+# :link: Ligoj Jenkins CI plugin ![Maven Central](https://img.shields.io/maven-central/v/org.ligoj.plugin/plugin-build-jenkins)
 
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=org.ligoj.plugin%3Aplugin-build-jenkins&metric=coverage)](https://sonarcloud.io/dashboard?id=org.ligoj.plugin%3Aplugin-build-jenkins)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?metric=alert_status&project=org.ligoj.plugin:plugin-build-jenkins)](https://sonarcloud.io/dashboard/index/org.ligoj.plugin:plugin-build-jenkins)
