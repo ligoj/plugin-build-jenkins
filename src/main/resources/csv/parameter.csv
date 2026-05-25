@@ -1,6 +1,6 @@
-id;owner.id;data;mandatory;type;mode;secured
-service:build:jenkins:url;service:build:jenkins;;true;TEXT;;
-service:build:jenkins:user;service:build:jenkins;;true;TEXT;;true
-service:build:jenkins:api-token;service:build:jenkins;;true;TEXT;;true
-service:build:jenkins:job;service:build:jenkins;;true;TEXT;;
-service:build:jenkins:template-job;service:build:jenkins;;true;TEXT;CREATE;
+id;owner.id;data;mandatory;type;mode;secured;availableForSubscription;availableForNode
+service:build:jenkins:url;service:build:jenkins;;TRUE;TEXT;;;FALSE;
+service:build:jenkins:user;service:build:jenkins;;TRUE;TEXT;;TRUE;FALSE;
+service:build:jenkins:api-token;service:build:jenkins;;TRUE;TEXT;;TRUE;FALSE;
+service:build:jenkins:job;service:build:jenkins;;TRUE;TEXT;;;;FALSE
+service:build:jenkins:template-job;service:build:jenkins;;TRUE;TEXT;CREATE;;;
