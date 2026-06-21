@@ -5,3 +5,5 @@
 **/.classpath
 **/dependency-reduced-pom.xml
 /*.exec
+
+src/main/resources/META-INF/resources/webjars/build-jenkins/vue/
