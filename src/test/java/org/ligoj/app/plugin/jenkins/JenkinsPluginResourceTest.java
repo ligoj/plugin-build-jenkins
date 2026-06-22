@@ -1,7 +1,7 @@
 /*
  * Licensed under MIT (https://github.com/ligoj/ligoj/blob/master/LICENSE)
  */
-package org.ligoj.app.plugin.build.jenkins;
+package org.ligoj.app.plugin.jenkins;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import jakarta.transaction.Transactional;
