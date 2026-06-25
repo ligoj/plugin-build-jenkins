@@ -156,7 +156,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	void validateJobInvalidResult() {
 		configurationResource.put(JenkinsPluginResource.PARAMETER_MAX_BRANCHES, "2");
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
 		httpServer.start();
 
@@ -207,7 +207,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	@Test
 	void validateJobSimple() throws IOException, ParserConfigurationException, SAXException {
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 						.withBody(IOUtils.toString(new ClassPathResource(
 										"mock-server/jenkins/jenkins-ligoj-bootstrap-config-simple.xml").getInputStream(),
@@ -280,7 +280,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	private void addJobAccess() throws IOException {
 		configurationResource.put(JenkinsPluginResource.PARAMETER_MAX_BRANCHES, "2");
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 						.withBody(IOUtils.toString(
 								new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config.xml")
@@ -291,7 +291,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	private void addJobAccessBuilding() throws IOException {
 		configurationResource.put(JenkinsPluginResource.PARAMETER_MAX_BRANCHES, "2");
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody(IOUtils.toString(
 						new ClassPathResource("mock-server/jenkins/jenkins-ligoj-bootstrap-config-building.xml")
 								.getInputStream(),
@@ -349,8 +349,8 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	void findAllByName() throws IOException, SAXException, ParserConfigurationException {
-		httpServer.stubFor(get(urlEqualTo("/api/xml?tree=jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]," +
-				"jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]]")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+		httpServer.stubFor(get(urlEqualTo("/api/xml?tree=jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]," +
+				"jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]]")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 				.withBody(IOUtils.toString(
 						new ClassPathResource("mock-server/jenkins/jenkins-api-xml-tree.xml").getInputStream(),
 						StandardCharsets.UTF_8))));
@@ -402,7 +402,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	@Test
 	void findByIdFail() {
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("<hudson/>")));
 		httpServer.start();
 		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.findById("service:build:jenkins:bpr", "ligoj-bootstraps")), "service:build:jenkins:job", "jenkins-job");
@@ -411,7 +411,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	@Test
 	void findByIdFail404() {
 		httpServer.stubFor(get(urlEqualTo(
-				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,color,lastBuild[timestamp],property[branch[head]]]"))
+				"/job/ligoj-bootstrap/api/xml?tree=displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]],jobs[displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]]"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND).withBody("<any/>")));
 		httpServer.start();
 		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> resource.findById("service:build:jenkins:bpr", "ligoj-bootstraps")), "service:build:jenkins:job", "jenkins-job");

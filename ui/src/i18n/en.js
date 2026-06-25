@@ -16,5 +16,11 @@ export default {
   'service:build:jenkins:status-red': 'Failure',
   'service:build:jenkins:status-yellow': 'Unstable',
   'service:build:jenkins:status-disabled': 'Unknown',
-  'service:build:jenkins:last-build': 'Last build',
+  'service:build:jenkins:branch': 'Branch',
+  'service:build:jenkins:pull-request': 'Pull request',
+  'service:build:jenkins:job-search': 'Search for an existing job…',
+  'service:build:jenkins:template-job-search': 'Search for a template job…',
+  'service:build:jenkins:job-invalid': 'The job name must match the project key (e.g. {pkey} or {pkey}-*).',
+  'service:build:jenkins:job-exists': 'A job named "{name}" already exists.',
+  'service:build:help': 'Help',
 }

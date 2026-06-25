@@ -13,5 +13,11 @@ export default {
   'service:build:jenkins:status-red': 'Échec',
   'service:build:jenkins:status-yellow': 'Instable',
   'service:build:jenkins:status-disabled': 'Inconnu',
-  'service:build:jenkins:last-build': 'Dernière exécution',
+  'service:build:jenkins:branch': 'Branche',
+  'service:build:jenkins:pull-request': 'Pull request',
+  'service:build:jenkins:job-search': 'Rechercher une tâche existante…',
+  'service:build:jenkins:template-job-search': 'Rechercher une tâche modèle…',
+  'service:build:jenkins:job-invalid': 'Le nom de la tâche doit correspondre à la clé du projet (ex. {pkey} ou {pkey}-*).',
+  'service:build:jenkins:job-exists': 'Une tâche nommée « {name} » existe déjà.',
+  'service:build:help': 'Aide',
 }

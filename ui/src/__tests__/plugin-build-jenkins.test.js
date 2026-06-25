@@ -5,6 +5,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useI18nStore } from '@ligoj/host'
 import pluginBuildJenkinsDef from '../index.js'
+import JenkinsJobField from '../fields/JenkinsJobField.vue'
+import JenkinsTemplateJobField from '../fields/JenkinsTemplateJobField.vue'
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -47,10 +49,29 @@ describe('plugin-build-jenkins contract', () => {
     expect(vnodes[0].__v_isVNode).toBe(true)
     expect(vnodes[0].props.href).toBe('https://ci.example.org/job/ligoj-build')
     expect(vnodes[0].props.target).toBe('_blank')
+    // A real mdi glyph — `mdi-jenkins` was removed from the font, so it must
+    // not regress to an invisible icon.
+    expect(vnodes[0].children.default().children.default()).toBe('mdi-home')
     // The second VNode is the build action: a click handler, no href.
     expect(vnodes[1].props.href).toBeUndefined()
     expect(typeof vnodes[1].props.onClick).toBe('function')
     expect(vnodes[1].children.default()).toBeTruthy()
+  })
+
+  it('renderFeatures uses the Jenkins job description as the home-link tooltip when available', () => {
+    pluginBuildJenkinsDef.install()
+    const sub = {
+      id: 8,
+      parameters: { 'service:build:jenkins:url': 'https://ci.example.org', 'service:build:jenkins:job': 'ligoj-build' },
+      data: { job: { name: 'Ligoj CI', description: 'Nightly pipeline' } },
+    }
+    const home = pluginBuildJenkinsDef.feature('renderFeatures', sub)[0]
+    expect(home.props.title).toBe('Nightly pipeline')
+    // Without a description it falls back to the generic "Job" label.
+    const noDesc = pluginBuildJenkinsDef.feature('renderFeatures', {
+      parameters: sub.parameters,
+    })[0]
+    expect(noDesc.props.title).toBe('Job')
   })
 
   it('renderFeatures omits the build action without a subscription id', () => {
@@ -142,20 +163,18 @@ describe('plugin-build-jenkins contract', () => {
     expect(pluginBuildJenkinsDef.feature('renderDetailsFeatures', { parameters: {} })).toBeNull()
   })
 
-  it('renderDetailsFeatures renders the status icon (colour + tooltip) and last-build link', () => {
+  it('renderDetailsFeatures renders just the live status icon in single-job mode', () => {
     pluginBuildJenkinsDef.install()
     const out = pluginBuildJenkinsDef.feature('renderDetailsFeatures', {
       parameters: { 'service:build:jenkins:url': 'https://ci.example.org/', 'service:build:jenkins:job': 'ligoj-build' },
-      data: { job: { status: 'blue', building: false, lastBuild: 42 } },
+      // lastBuild is a TIMESTAMP, not a build number — no execution link.
+      data: { job: { status: 'blue', building: false, lastBuild: 1782383383781 } },
     })
+    expect(out).toHaveLength(1)
     const icon = out[0]
     expect(icon.props.color).toBe('success')
     expect(icon.props.title).toBe('Success')
     expect(icon.children.default()).toBe('mdi-check-circle')
-    const link = out[1]
-    expect(link.props.href).toBe('https://ci.example.org/job/ligoj-build/42/')
-    expect(link.props.target).toBe('_blank')
-    expect(link.props.title).toBe('Last build #42')
   })
 
   it('renderDetailsFeatures shows a building spinner with a "(Building)" tooltip', () => {
@@ -170,5 +189,108 @@ describe('plugin-build-jenkins contract', () => {
     expect(icon.props.color).toBe('error')
     expect(icon.props.title).toBe('Failure (Building)')
     expect(out).toHaveLength(1) // no lastBuild → status only
+  })
+
+  it('renderFeatures appends a help link when the help URL parameter is set', () => {
+    pluginBuildJenkinsDef.install()
+    const vnodes = pluginBuildJenkinsDef.feature('renderFeatures', {
+      id: 9,
+      parameters: {
+        'service:build:jenkins:url': 'https://ci.example.org',
+        'service:build:jenkins:job': 'ligoj-build',
+        'service:build:help': 'https://docs.example.org/jenkins',
+      },
+    })
+    expect(vnodes).toHaveLength(3) // home + build + help
+    const help = vnodes[2]
+    expect(help.props.href).toBe('https://docs.example.org/jenkins')
+    expect(help.props.target).toBe('_blank')
+    expect(help.props.title).toBe('Help')
+  })
+
+  it('renderDetailsFeatures renders one link + status icon per branch in multi-branch mode', () => {
+    pluginBuildJenkinsDef.install()
+    const out = pluginBuildJenkinsDef.feature('renderDetailsFeatures', {
+      parameters: { 'service:build:jenkins:url': 'https://ci.example.org/', 'service:build:jenkins:job': 'ligoj' },
+      data: {
+        job: {
+          id: 'ligoj',
+          status: 'blue',
+          jobs: [
+            { id: 'main', name: 'main', status: 'blue', building: false },
+            { id: 'PR-7', name: 'feature/x', status: 'red', building: false, pullRequestBranch: true },
+          ],
+        },
+      },
+    })
+    expect(out).toHaveLength(2)
+    // Each entry is a <span> wrapping [branchLink, statusIcon].
+    const [branchSpan, prSpan] = out
+    expect(branchSpan.type).toBe('span')
+
+    const branchLink = branchSpan.children[0]
+    // Nested folder URL: each path segment gets its own /job/ traversal.
+    expect(branchLink.props.href).toBe('https://ci.example.org/job/ligoj/job/main/')
+    expect(branchLink.children.default().children.default()).toBe('mdi-source-branch')
+    expect(branchSpan.children[1].props.color).toBe('success') // branch's OWN status
+
+    const prLink = prSpan.children[0]
+    expect(prLink.props.href).toBe('https://ci.example.org/job/ligoj/view/change-requests/job/feature%2Fx/')
+    expect(prLink.children.default().children.default()).toBe('mdi-source-pull')
+    expect(prSpan.children[1].props.color).toBe('error') // PR's OWN status
+  })
+
+  it('stops polling once a refresh reports the job is no longer building', async () => {
+    vi.useFakeTimers()
+    pluginBuildJenkinsDef.install()
+    const orig = global.fetch
+    global.fetch = vi.fn((url, opts) => {
+      const method = opts?.method || 'GET'
+      // The build trigger (POST) succeeds…
+      if (method === 'POST') return Promise.resolve({ ok: true, status: 204, headers: { get: () => null } })
+      // …and every status refresh reports the job is NOT building.
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: { job: { status: 'blue', building: false, lastBuild: 1782383383781 } } }),
+      })
+    })
+    try {
+      const sub = {
+        id: 555,
+        parameters: { 'service:build:jenkins:url': 'https://ci.example.org', 'service:build:jenkins:job': 'ligoj' },
+      }
+      // Trigger the build → the row goes busy and the poll loop starts.
+      pluginBuildJenkinsDef.feature('renderFeatures', sub)[1].props.onClick()
+      // Drive the POST resolution + the refresh ticks through the grace window.
+      await vi.advanceTimersByTimeAsync(20000)
+      // The build is not building → polling must terminate: the button is no
+      // longer busy and no interval is left running.
+      const after = pluginBuildJenkinsDef.feature('renderFeatures', sub)
+      expect(after[1].props.disabled).toBeFalsy()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      global.fetch = orig
+      vi.useRealTimers()
+    }
+  })
+
+  it('parameterField returns the custom job / template-job inputs, null otherwise', () => {
+    const job = pluginBuildJenkinsDef.feature('parameterField', {
+      parameter: { id: 'service:build:jenkins:job' }, mode: 'link', isNode: false,
+    })
+    expect(job).toBe(JenkinsJobField)
+    const tpl = pluginBuildJenkinsDef.feature('parameterField', {
+      parameter: { id: 'service:build:jenkins:template-job' }, mode: 'create', isNode: false,
+    })
+    expect(tpl).toBe(JenkinsTemplateJobField)
+    // Other parameters keep the wizard's default type-based rendering.
+    expect(pluginBuildJenkinsDef.feature('parameterField', {
+      parameter: { id: 'service:build:jenkins:url' }, isNode: false,
+    })).toBeNull()
+    // Node-config editing (edit-node / create-node) falls back to defaults.
+    expect(pluginBuildJenkinsDef.feature('parameterField', {
+      parameter: { id: 'service:build:jenkins:job' }, isNode: true,
+    })).toBeNull()
   })
 })

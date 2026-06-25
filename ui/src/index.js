@@ -9,10 +9,14 @@
  *   - feature('renderDetailsKey', subscription): the job display-name chip
  *     (description as tooltip).
  *   - feature('renderDetailsFeatures', subscription): the live status icon
- *     (+ building spinner) and a link to the last execution.
+ *     (+ building spinner) and a link to the last execution, or one link +
+ *     status per branch in multi-branch / pull-request mode.
+ *   - feature('parameterField', ctx): custom subscribe-wizard inputs for the
+ *     job (autocomplete / validated create-mode name) and template-job params.
  *
- * The parent `plugin-build` merges these into its subscription-row output
- * through its `subPluginIdFor(...)` delegation hook.
+ * The parent `plugin-build` merges the render hooks into its subscription-row
+ * output through its `subPluginIdFor(...)` delegation hook; the subscribe
+ * wizard calls `parameterField` directly to resolve a custom field component.
  *
  * Authored as source — compiled to `/main/build-jenkins/vue/index.js`.
  */
@@ -25,6 +29,7 @@ const features = {
   renderFeatures: service.renderFeatures,
   renderDetailsKey: service.renderDetailsKey,
   renderDetailsFeatures: service.renderDetailsFeatures,
+  parameterField: service.parameterField,
 }
 
 export default {
@@ -44,7 +49,9 @@ export default {
     return fn(...args)
   },
   service,
-  meta: { icon: 'mdi-jenkins', color: 'red-darken-1' },
+  // mdi dropped the `jenkins` glyph (trademark); use a build/CI gear in the
+  // Jenkins brand colour. The parent `build` uses `mdi-cog-sync`.
+  meta: { icon: 'mdi-cog', color: 'red-darken-1' },
 }
 
 export { service }

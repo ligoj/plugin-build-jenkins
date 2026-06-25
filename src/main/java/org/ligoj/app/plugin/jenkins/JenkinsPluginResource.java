@@ -119,7 +119,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	/**
 	 * Template query for Jenkins XML tree.
 	 */
-	private static final String XML_TEMPLATE_QUERY = "displayName,fullName,color,lastBuild[timestamp],property[branch[head]]" + XML_RECURRING_MARKER;
+	private static final String XML_TEMPLATE_QUERY = "displayName,fullName,description,color,lastBuild[timestamp],property[branch[head]]" + XML_RECURRING_MARKER;
 
 	/**
 	 * Public server URL used to fetch the last available version of the product.
