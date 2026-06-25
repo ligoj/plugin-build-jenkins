@@ -9,6 +9,12 @@ export default {
   'service:build:jenkins:api-token': 'API token',
   'service:build:jenkins:job': 'Job',
   'service:build:jenkins:template-job': 'Template job',
+  'service:build:jenkins:build': 'Build',
   'service:build:jenkins:building': 'Building',
   'service:build:jenkins:status': 'Status',
+  'service:build:jenkins:status-blue': 'Success',
+  'service:build:jenkins:status-red': 'Failure',
+  'service:build:jenkins:status-yellow': 'Unstable',
+  'service:build:jenkins:status-disabled': 'Unknown',
+  'service:build:jenkins:last-build': 'Last build',
 }

@@ -5,8 +5,11 @@
  * It augments the parent `plugin-build` via:
  *   - i18n: Jenkins parameter labels (url, user, api-token, job, …) for
  *     the subscribe wizard's auto-rendered parameter form.
- *   - feature('renderFeatures', subscription): the Jenkins job link.
- *   - feature('renderDetailsKey', subscription): the job-name chip.
+ *   - feature('renderFeatures', subscription): the Jenkins project home link.
+ *   - feature('renderDetailsKey', subscription): the job display-name chip
+ *     (description as tooltip).
+ *   - feature('renderDetailsFeatures', subscription): the live status icon
+ *     (+ building spinner) and a link to the last execution.
  *
  * The parent `plugin-build` merges these into its subscription-row output
  * through its `subPluginIdFor(...)` delegation hook.
@@ -21,6 +24,7 @@ import service from './service.js'
 const features = {
   renderFeatures: service.renderFeatures,
   renderDetailsKey: service.renderDetailsKey,
+  renderDetailsFeatures: service.renderDetailsFeatures,
 }
 
 export default {
