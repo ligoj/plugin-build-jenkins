@@ -21,7 +21,6 @@ import org.ligoj.bootstrap.MatcherUtil;
 import org.ligoj.bootstrap.core.resource.BusinessException;
 import org.ligoj.bootstrap.core.validation.ValidationJsonException;
 import org.ligoj.bootstrap.resource.system.configuration.ConfigurationResource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.annotation.Rollback;
@@ -37,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class of {@link JenkinsPluginResource}
@@ -505,10 +506,10 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 
 	@Test
 	void buildInvalidUrl() {
-		@SuppressWarnings("unchecked") final Map<String, String> map = Mockito.mock(Map.class);
-		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
-		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_TOKEN)).thenReturn("some");
-		Mockito.when(map.get(JenkinsPluginResource.PARAMETER_URL)).thenThrow(new RuntimeException());
+		@SuppressWarnings("unchecked") final Map<String, String> map = mock(Map.class);
+		when(map.get(JenkinsPluginResource.PARAMETER_USER)).thenReturn("some");
+		when(map.get(JenkinsPluginResource.PARAMETER_TOKEN)).thenReturn("some");
+		when(map.get(JenkinsPluginResource.PARAMETER_URL)).thenThrow(new RuntimeException());
 		Assertions.assertThrows(RuntimeException.class, () -> this.resource.build(map, null));
 	}
 
