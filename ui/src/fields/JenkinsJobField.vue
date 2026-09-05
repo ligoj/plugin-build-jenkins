@@ -14,7 +14,7 @@
        fields, so the pattern check is best-effort: it only runs when a pkey
        is available (matching IdGroupField's behaviour) — the existence probe
        always runs. -->
-  <v-text-field
+  <LigojTextField
     v-if="createMode"
     v-model="jobName"
     :label="paramLabel"
@@ -49,7 +49,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useApi, useI18nStore, LigojAutocomplete } from '@ligoj/host'
+import { LigojTextField, useApi, useI18nStore, LigojAutocomplete } from '@ligoj/host'
 import { useJobSearch } from './jobSearch.js'
 
 const props = defineProps({
