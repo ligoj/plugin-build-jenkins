@@ -87,6 +87,12 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public static final String PARAMETER_TEMPLATE_JOB = KEY + ":template-job";
 
 	/**
+	 * Optional JSON definition of the folder to create in CREATE mode, alternative to {@link #PARAMETER_TEMPLATE_JOB}:
+	 * description, credentials and nested folders. See {@link JenkinsFolder}.
+	 */
+	public static final String PARAMETER_TEMPLATE_FOLDER = KEY + ":template-folder";
+
+	/**
 	 * Web site URL
 	 */
 	public static final String PARAMETER_URL = KEY + ":url";
@@ -186,8 +192,22 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		// Validate the node settings
 		validateAdminAccess(parameters);
 
+		// Folder mode: the subscription creates a folder tree with its credentials instead of copying a template job
+		final var folderDefinition = StringUtils.trimToNull(parameters.get(PARAMETER_TEMPLATE_FOLDER));
+		if (folderDefinition != null) {
+			final var definition = JenkinsFolderCreator.parse(folderDefinition);
+			try (var curl = new JenkinsCurlProcessor(parameters)) {
+				new JenkinsFolderCreator(parameters.get(PARAMETER_URL), curl).create(parameters.get(PARAMETER_JOB), definition);
+			}
+			return;
+		}
+
 		// Get Template configuration
 		final var templateJob = parameters.get(PARAMETER_TEMPLATE_JOB);
+		if (StringUtils.isBlank(templateJob)) {
+			// Neither a folder definition nor a template job
+			throw new ValidationJsonException(PARAMETER_TEMPLATE_JOB, "NotBlank");
+		}
 		final var templateConfigXml = getResource(parameters, "job/" + encode(templateJob) + "/config.xml");
 
 		// update template

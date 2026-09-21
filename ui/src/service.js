@@ -28,16 +28,20 @@ import { h, reactive } from 'vue'
 import { VBtn, VIcon, renderServiceLink, renderDetailsChip, useApi, useI18nStore } from '@ligoj/host'
 import JenkinsJobField from './fields/JenkinsJobField.vue'
 import JenkinsTemplateJobField from './fields/JenkinsTemplateJobField.vue'
+import JenkinsFolderField from './fields/JenkinsFolderField.vue'
 
 const PARAM_URL = 'service:build:jenkins:url'
 const PARAM_JOB = 'service:build:jenkins:job'
 const PARAM_TEMPLATE_JOB = 'service:build:jenkins:template-job'
+// CREATE mode alternative to the template job: JSON definition of a folder tree with its credentials
+const PARAM_TEMPLATE_FOLDER = 'service:build:jenkins:template-folder'
 const PARAM_HELP = 'service:build:help'
 
 // Parameters the Jenkins tool owns a custom subscribe-wizard input for.
 const PARAMETER_FIELDS = {
   [PARAM_JOB]: JenkinsJobField,
   [PARAM_TEMPLATE_JOB]: JenkinsTemplateJobField,
+  [PARAM_TEMPLATE_FOLDER]: JenkinsFolderField,
 }
 
 // Transient per-subscription build state, REACTIVE so the row re-renders as the

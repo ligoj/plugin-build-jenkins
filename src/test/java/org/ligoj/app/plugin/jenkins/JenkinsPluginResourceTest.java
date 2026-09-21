@@ -486,6 +486,115 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		em.flush();
 	}
 
+	private void createParameterValueFolder(final Subscription subscription, final String definition) {
+		final var parameterValue = new ParameterValue();
+		parameterValue.setParameter(em.find(Parameter.class, "service:build:jenkins:template-folder"));
+		parameterValue.setSubscription(subscription);
+		parameterValue.setData(definition);
+		em.persist(parameterValue);
+		em.flush();
+	}
+
+	private static final String FOLDER = "{\"description\":\"Root & co\",\"roles\":{\"dev\":{}},"
+			+ "\"credentials\":[{\"id\":\"c1\",\"description\":\"d\",\"stapler-class\":\"org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl\","
+			+ "\"attributes\":{\"secret\":\"s3cret\",\"$redact\":\"secret\"}}],"
+			+ "\"folders\":[{\"name\":\"child.1\",\"mode\":\"jenkins.branch.OrganizationFolder\"}]}";
+
+	@Test
+	void createFolder() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		// Nothing exists yet
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		// Root folder, named by the subscription job, with its escaped description
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap"))
+				.withRequestBody(WireMock.equalTo("<com.cloudbees.hudson.plugins.folder.Folder><description>Root &amp; co</description></com.cloudbees.hudson.plugins.folder.Folder>"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		// Its credential: the tooling hint '$redact' is not sent, the roles are ignored
+		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials"))
+				.withRequestBody(WireMock.containing("%22id%22%3A%22c1%22"))
+				.withRequestBody(WireMock.containing("%22secret%22%3A%22s3cret%22"))
+				.withRequestBody(WireMock.notMatching(".*redact.*"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		// Nested organization folder
+		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/createItem?name=child.1"))
+				.withRequestBody(WireMock.containing("<jenkins.branch.OrganizationFolder>"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		this.resource.create(this.subscription);
+
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=ligoj-bootstrap")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/createItem?name=child.1")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials")));
+		// The template job path is not used at all
+		httpServer.verify(0, getRequestedFor(urlPathMatching("/job/.*/config.xml")));
+	}
+
+	@Test
+	void createFolderExisting() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		// Every folder already exists: nothing is created again, the creation can be replayed
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), "{\"folders\":[{\"name\":\"child\"}]}");
+		this.resource.create(this.subscription);
+		httpServer.verify(0, postRequestedFor(urlPathMatching(".*createItem.*")));
+	}
+
+	@Test
+	void createFolderFailed() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap")).willReturn(aResponse().withStatus(HttpStatus.SC_BAD_REQUEST)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), "{}");
+		Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
+	}
+
+	@Test
+	void createFolderCredentialFailed() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		// Credentials plug-in missing on the Jenkins side
+		httpServer.stubFor(post(urlPathMatching(".*/createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		final var exception = Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
+		// The secret never leaks in the error
+		Assertions.assertFalse(String.valueOf(exception.getMessage()).contains("s3cret"));
+	}
+
+	@Test
+	void createFolderInvalidDefinition() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		final var subscription = em.find(Subscription.class, this.subscription);
+		for (final var invalid : new String[] { "not-json", "{\"folders\":[{\"description\":\"no name\"}]}", "{\"mode\":\"hudson.model.FreeStyleProject\"}",
+				"{\"credentials\":[{\"id\":\"c1\"}]}" }) {
+			createParameterValueFolder(subscription, invalid);
+			Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription));
+			em.createQuery("DELETE ParameterValue WHERE parameter.id = 'service:build:jenkins:template-folder'").executeUpdate();
+		}
+	}
+
+	@Test
+	void createNoTemplateNoFolder() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription));
+	}
+
 	@Test
 	void buildFailed() throws IOException {
 		addLoginAccess();
