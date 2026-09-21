@@ -13,7 +13,9 @@ import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.stream.Streams;
 import org.ligoj.app.api.SubscriptionStatusWithData;
+import org.ligoj.app.dao.ParameterRepository;
 import org.ligoj.app.iam.IamProvider;
+import org.ligoj.app.model.Parameter;
 import org.ligoj.app.plugin.build.BuildResource;
 import org.ligoj.app.plugin.build.BuildServicePlugin;
 import org.ligoj.app.resource.NormalizeFormat;
@@ -138,6 +140,22 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Autowired
 	protected XmlUtils xml;
+
+	@Autowired
+	protected ParameterRepository parameterRepository;
+
+	/**
+	 * The seed CSV only inserts the missing rows, so relax there the parameters that were mandatory in the previous
+	 * versions: the template job is now an alternative of the template folder.
+	 */
+	@Override
+	public void update(final String oldVersion) {
+		parameterRepository.findById(PARAMETER_TEMPLATE_JOB).filter(Parameter::isMandatory).ifPresent(p -> {
+			log.info("Parameter {} is no more mandatory since {} is its alternative", PARAMETER_TEMPLATE_JOB,
+					PARAMETER_TEMPLATE_FOLDER);
+			p.setMandatory(false);
+		});
+	}
 
 	/**
 	 * Used to launch the job for the subscription.

@@ -501,6 +501,20 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 			+ "\"folders\":[{\"name\":\"child.1\",\"mode\":\"jenkins.branch.OrganizationFolder\"}]}";
 
 	@Test
+	void updateRelaxTemplateJob() {
+		final var parameter = em.find(Parameter.class, JenkinsPluginResource.PARAMETER_TEMPLATE_JOB);
+		parameter.setMandatory(true);
+		em.flush();
+
+		resource.update("5.0.0");
+		Assertions.assertFalse(parameter.isMandatory());
+
+		// Already relaxed, nothing to do
+		resource.update("5.0.1");
+		Assertions.assertFalse(parameter.isMandatory());
+	}
+
+	@Test
 	void createFolder() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
