@@ -45,4 +45,10 @@ public class JenkinsCredential {
 	 * Attributes of the implementation class. Keys starting with <code>$</code> are tooling hints and are not sent.
 	 */
 	private Map<String, Object> attributes;
+
+	/**
+	 * Optional Jenkins plug-in (short name) providing the credential class, when it cannot be inferred from the
+	 * {@code stapler-class} package. Checked against the installed plug-ins before anything is created.
+	 */
+	private String plugin;
 }

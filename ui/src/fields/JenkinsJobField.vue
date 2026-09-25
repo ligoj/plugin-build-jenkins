@@ -70,13 +70,18 @@ const api = useApi()
 const createMode = computed(() => !props.isNode && String(props.mode).toLowerCase() === 'create')
 
 function tOrNull(key) { const v = t(key); return v === key ? null : v }
-const paramLabel = computed(() => {
-  const base = tOrNull(props.parameter?.id) ?? props.parameter?.id
-  return `${base}${(props.parameter?.mandatory || props.parameter?.required) ? ' *' : ''}`
-})
 
 const REQUIRED_RULE = (v) => (v != null && String(v).trim() !== '') || (tOrNull('wizard.rule.required') ?? 'Required')
-const isRequired = computed(() => !!(props.parameter?.mandatory || props.parameter?.required))
+// The job requirement is decided here, per mode, not by the stored `mandatory` flag (optional since the folder
+// mode derives the job from the definition): LINK mode needs an existing job, CREATE mode needs the new job name
+// unless a folder definition is typed.
+const PARAM_TEMPLATE_FOLDER = 'service:build:jenkins:template-folder'
+const isRequired = computed(() => !createMode.value
+  || String(props.formValues?.[PARAM_TEMPLATE_FOLDER] ?? '').trim() === '')
+const paramLabel = computed(() => {
+  const base = tOrNull(props.parameter?.id) ?? props.parameter?.id
+  return `${base}${isRequired.value ? ' *' : ''}`
+})
 
 /* ------------- CREATE mode (new job name + live validation) ------------- */
 

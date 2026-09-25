@@ -31,6 +31,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +103,43 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 
 		// check that server has been called.
 		httpServer.verify(1, WireMock.postRequestedFor(deletePath));
+	}
+
+	/**
+	 * A nested job / folder path is deleted segment by segment: deleting the root folder created by a folder-mode
+	 * subscription removes its whole tree.
+	 */
+	@Test
+	void deleteRemoteNestedPath() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		em.createQuery("UPDATE ParameterValue SET data = 'team/Admin' WHERE parameter.id = 'service:build:jenkins:job' AND subscription.id = :id")
+				.setParameter("id", this.subscription).executeUpdate();
+		em.flush();
+		cacheManager.getCache("subscription-parameters").clear();
+		final var deletePath = urlEqualTo("/job/team/job/Admin/doDelete");
+		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		httpServer.start();
+
+		resource.delete(subscription, true);
+		httpServer.verify(1, WireMock.postRequestedFor(deletePath));
+	}
+
+	/**
+	 * Nothing to delete remotely without a job.
+	 */
+	@Test
+	void deleteRemoteNoJob() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		em.createQuery("DELETE ParameterValue WHERE parameter.id = 'service:build:jenkins:job' AND subscription.id = :id")
+				.setParameter("id", this.subscription).executeUpdate();
+		em.flush();
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.start();
+
+		resource.delete(subscription, true);
+		httpServer.verify(0, WireMock.postRequestedFor(urlPathMatching(".*doDelete")));
 	}
 
 	@Test
@@ -506,8 +544,13 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		parameter.setMandatory(true);
 		em.flush();
 
+		final var job = em.find(Parameter.class, JenkinsPluginResource.PARAMETER_JOB);
+		job.setMandatory(true);
+		em.flush();
+
 		resource.update("5.0.0");
 		Assertions.assertFalse(parameter.isMandatory());
+		Assertions.assertFalse(job.isMandatory());
 
 		// Already relaxed, nothing to do
 		resource.update("5.0.1");
@@ -530,6 +573,10 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 				.withRequestBody(WireMock.containing("%22secret%22%3A%22s3cret%22"))
 				.withRequestBody(WireMock.notMatching(".*redact.*"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true}]}")));
+		// The credential store of the folder exists (Credentials plug-in installed)
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		// Nested organization folder
 		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/createItem?name=child.1"))
 				.withRequestBody(WireMock.containing("<jenkins.branch.OrganizationFolder>"))
@@ -544,6 +591,27 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials")));
 		// The template job path is not used at all
 		httpServer.verify(0, getRequestedFor(urlPathMatching("/job/.*/config.xml")));
+	}
+
+	/**
+	 * Jenkins answers the credential creation with a redirect to the domain page: a success.
+	 */
+	@Test
+	void createFolderCredentialRedirect() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true}]}")));
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_MOVED_TEMPORARILY).withHeader("Location", "http://localhost:8120/job/ligoj-bootstrap/credentials/store/folder/domain/_/")));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		this.resource.create(this.subscription);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials")));
 	}
 
 	@Test
@@ -577,7 +645,10 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		addAdminAccess();
 		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
-		// Credentials plug-in missing on the Jenkins side
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true}]}")));
+		// The store exists but the creation is refused (invalid class, ...)
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		httpServer.stubFor(post(urlPathMatching(".*/createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		httpServer.start();
 
@@ -585,6 +656,57 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		final var exception = Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
 		// The secret never leaks in the error
 		Assertions.assertFalse(String.valueOf(exception.getMessage()).contains("s3cret"));
+		// The generic creation failure, not the missing store
+		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("Creating the Jenkins credential"), exception.getMessage());
+	}
+
+	/**
+	 * The plug-ins required by the credentials are checked before anything is created: a missing one is a
+	 * validation error of the definition naming the plug-ins.
+	 */
+	@Test
+	void createFolderPluginMissing() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":false}]}")));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		final var error = Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription));
+		MatcherUtil.assertThrows(error, JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-plugin");
+		@SuppressWarnings("unchecked")
+		final var parameters = (Map<String, Object>) error.getErrors().get(JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER).getFirst().get("parameters");
+		Assertions.assertEquals("credentials, plain-credentials", parameters.get("plugins"));
+		httpServer.verify(0, postRequestedFor(urlPathMatching(".*createItem.*")));
+	}
+
+	@Test
+	void requiredPlugins() {
+		Assertions.assertTrue(JenkinsFolderCreator.requiredPlugins(JenkinsFolderCreator.parse("{\"folders\":[{\"name\":\"a\"}]}")).isEmpty());
+		final var definition = JenkinsFolderCreator.parse("{\"credentials\":[{\"id\":\"a\",\"stapler-class\":\"com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl\"}],"
+				+ "\"folders\":[{\"name\":\"b\",\"credentials\":[{\"id\":\"b\",\"stapler-class\":\"com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey\"},"
+				+ "{\"id\":\"c\",\"stapler-class\":\"com.acme.MyCredentials\",\"plugin\":\"acme-credentials\"},"
+				+ "{\"id\":\"d\",\"stapler-class\":\"com.acme.Unknown\"}]}]}");
+		Assertions.assertEquals(List.of("credentials", "ssh-credentials", "acme-credentials"), new ArrayList<>(JenkinsFolderCreator.requiredPlugins(definition)));
+	}
+
+	/**
+	 * Without the Jenkins "credentials" plug-in, the folder has no credential store: a clear error names the cause
+	 * before any credential is sent (plug-in list unreadable here, so the store probe is the last guard).
+	 */
+	@Test
+	void createFolderCredentialsPluginMissing() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		final var exception = Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
+		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("'credentials' plug-in"), exception.getMessage());
+		httpServer.verify(0, postRequestedFor(urlPathMatching(".*/createCredentials")));
 	}
 
 	@Test
@@ -599,6 +721,96 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 			Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription));
 			em.createQuery("DELETE ParameterValue WHERE parameter.id = 'service:build:jenkins:template-folder'").executeUpdate();
 		}
+	}
+
+	private void deleteJobParameter() {
+		em.createQuery("DELETE ParameterValue WHERE parameter.id = 'service:build:jenkins:job' AND subscription.id = :id")
+				.setParameter("id", this.subscription).executeUpdate();
+		em.flush();
+		cacheManager.getCache("subscription-parameters").clear();
+	}
+
+	private String storedJob() {
+		cacheManager.getCache("subscription-parameters").clear();
+		return subscriptionResource.getParameters(this.subscription).get(JenkinsPluginResource.PARAMETER_JOB);
+	}
+
+	/**
+	 * Folder mode without a job: the root folder is named by the definition root, and stored as the subscription job.
+	 */
+	@Test
+	void createFolderBlankJobRootName() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+		deleteJobParameter();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription),
+				"{\"name\":\"Admin\",\"description\":\"Root\",\"folders\":[{\"name\":\"child\"}]}");
+		this.resource.create(this.subscription);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=Admin")).withRequestBody(WireMock.containing("<description>Root</description>")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/Admin/createItem?name=child")));
+		Assertions.assertEquals("Admin", storedJob());
+	}
+
+	/**
+	 * Folder mode without a job nor a root name: a single top-level folder is the root.
+	 */
+	@Test
+	void createFolderBlankJobSingleTopFolder() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+		deleteJobParameter();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription),
+				"{\"folders\":[{\"name\":\"Admin\",\"folders\":[{\"name\":\"folder6\",\"description\":\"Folder6\"}]}]}");
+		this.resource.create(this.subscription);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=Admin")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/Admin/createItem?name=folder6")).withRequestBody(WireMock.containing("<description>Folder6</description>")));
+		httpServer.verify(2, postRequestedFor(urlPathMatching(".*createItem.*")));
+		Assertions.assertEquals("Admin", storedJob());
+	}
+
+	/**
+	 * Folder mode without a job, a root name, and several top-level folders: the root cannot be chosen.
+	 */
+	@Test
+	void createFolderBlankJobAmbiguousRoot() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		deleteJobParameter();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription),
+				"{\"folders\":[{\"name\":\"Admin\"},{\"name\":\"Dev\"}]}");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription)),
+				JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-root");
+		httpServer.verify(0, postRequestedFor(urlPathMatching(".*createItem.*")));
+	}
+
+	/**
+	 * Template job mode and link mode still require the job.
+	 */
+	@Test
+	void createTemplateBlankJob() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		deleteJobParameter();
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription)),
+				JenkinsPluginResource.PARAMETER_JOB, "NotBlank");
+	}
+
+	@Test
+	void linkBlankJob() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		deleteJobParameter();
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.link(this.subscription)),
+				JenkinsPluginResource.PARAMETER_JOB, "NotBlank");
 	}
 
 	@Test

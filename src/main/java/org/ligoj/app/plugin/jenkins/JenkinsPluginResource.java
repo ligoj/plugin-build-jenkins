@@ -19,6 +19,9 @@ import org.ligoj.app.model.Parameter;
 import org.ligoj.app.plugin.build.BuildResource;
 import org.ligoj.app.plugin.build.BuildServicePlugin;
 import org.ligoj.app.resource.NormalizeFormat;
+import org.ligoj.app.resource.node.ParameterValueResource;
+import org.ligoj.app.resource.node.ParameterValueCreateVo;
+import java.util.List;
 import org.ligoj.app.resource.plugin.AbstractToolPluginResource;
 import org.ligoj.app.resource.plugin.XmlUtils;
 import org.ligoj.bootstrap.core.curl.CurlProcessor;
@@ -144,6 +147,9 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	@Autowired
 	protected ParameterRepository parameterRepository;
 
+	@Autowired
+	protected ParameterValueResource parameterValueResource;
+
 	/**
 	 * The seed CSV only inserts the missing rows, so relax there the parameters that were mandatory in the previous
 	 * versions: the template job is now an alternative of the template folder.
@@ -152,6 +158,11 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public void update(final String oldVersion) {
 		parameterRepository.findById(PARAMETER_TEMPLATE_JOB).filter(Parameter::isMandatory).ifPresent(p -> {
 			log.info("Parameter {} is no more mandatory since {} is its alternative", PARAMETER_TEMPLATE_JOB,
+					PARAMETER_TEMPLATE_FOLDER);
+			p.setMandatory(false);
+		});
+		parameterRepository.findById(PARAMETER_JOB).filter(Parameter::isMandatory).ifPresent(p -> {
+			log.info("Parameter {} is no more mandatory: the folder mode ({}) derives it from the definition", PARAMETER_JOB,
 					PARAMETER_TEMPLATE_FOLDER);
 			p.setMandatory(false);
 		});
@@ -213,11 +224,28 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		// Folder mode: the subscription creates a folder tree with its credentials instead of copying a template job
 		final var folderDefinition = StringUtils.trimToNull(parameters.get(PARAMETER_TEMPLATE_FOLDER));
 		if (folderDefinition != null) {
-			final var definition = JenkinsFolderCreator.parse(folderDefinition);
-			try (var curl = new JenkinsCurlProcessor(parameters)) {
-				new JenkinsFolderCreator(parameters.get(PARAMETER_URL), curl).create(parameters.get(PARAMETER_JOB), definition);
+			var definition = JenkinsFolderCreator.parse(folderDefinition);
+			var job = StringUtils.trimToNull(parameters.get(PARAMETER_JOB));
+			if (job == null) {
+				// No job: the definition names the root folder, stored as the subscription job for the status and links
+				final var root = JenkinsFolderCreator.resolveRoot(definition);
+				job = root.getKey();
+				definition = root.getValue();
+				final var value = new ParameterValueCreateVo();
+				value.setParameter(PARAMETER_JOB);
+				value.setText(job);
+				parameterValueResource.create(List.of(value), subscriptionRepository.findOneExpected(subscription));
+			}
+			try (var curl = new JenkinsCurlProcessor(parameters, new JenkinsWriteCallback());
+					var probe = new JenkinsCurlProcessor(parameters, new QuietHttpResponseCallback())) {
+				new JenkinsFolderCreator(parameters.get(PARAMETER_URL), curl, probe).create(job, definition);
 			}
 			return;
+		}
+
+		// Template job mode: the job is the name of the created job
+		if (StringUtils.isBlank(parameters.get(PARAMETER_JOB))) {
+			throw new ValidationJsonException(PARAMETER_JOB, "NotBlank");
 		}
 
 		// Get Template configuration
@@ -258,11 +286,16 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			// Validate the node settings
 			validateAdminAccess(parameters);
 
-			// delete the job
-			final var job = parameters.get(PARAMETER_JOB);
+			// Delete the job, or the root folder created by a folder-mode subscription (with its whole tree): the
+			// path is addressed segment by segment ("job/team/job/Admin")
+			final var job = StringUtils.trimToNull(parameters.get(PARAMETER_JOB));
+			if (job == null) {
+				log.info("No job attached to the subscription {}, nothing to delete on Jenkins", subscription);
+				return;
+			}
 			final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
 			final var curlRequest = new CurlRequest(HttpMethod.POST,
-					jenkinsBaseUrl + "job/" + encode(job) + "/doDelete", StringUtils.EMPTY);
+					jenkinsBaseUrl + "job/" + toJobPath(job) + "/doDelete", StringUtils.EMPTY);
 			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
 				if (!curl.process(curlRequest)) {
 					throw new BusinessException("Deleting the job for the subscription {} failed.", subscription);
@@ -273,6 +306,13 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	private String encode(final String job) {
 		return UriUtils.encode(job, "UTF-8");
+	}
+
+	/**
+	 * Jenkins URL path of a job, its folders included: {@code team/Admin} becomes {@code team/job/Admin}.
+	 */
+	private String toJobPath(final String job) {
+		return Streams.of(job.split("/")).map(this::encode).collect(Collectors.joining("/job/"));
 	}
 
 	/**
@@ -449,7 +489,10 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 		// Validate the node settings
 		validateAdminAccess(parameters);
 
-		// Validate the job settings
+		// Validate the job settings: linking requires an existing job
+		if (StringUtils.isBlank(parameters.get(PARAMETER_JOB))) {
+			throw new ValidationJsonException(PARAMETER_JOB, "NotBlank");
+		}
 		validateJob(parameters);
 	}
 

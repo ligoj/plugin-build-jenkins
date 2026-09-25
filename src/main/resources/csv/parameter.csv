@@ -2,6 +2,6 @@ id;owner.id;data;mandatory;type;mode;secured;availableForSubscription;availableF
 service:build:jenkins:url;service:build:jenkins;;TRUE;TEXT;;;FALSE;
 service:build:jenkins:user;service:build:jenkins;;TRUE;TEXT;;TRUE;FALSE;
 service:build:jenkins:api-token;service:build:jenkins;;TRUE;TEXT;;TRUE;FALSE;
-service:build:jenkins:job;service:build:jenkins;;TRUE;TEXT;;;;FALSE
+service:build:jenkins:job;service:build:jenkins;;FALSE;TEXT;;;;FALSE
 service:build:jenkins:template-job;service:build:jenkins;;FALSE;TEXT;CREATE;;;FALSE
 service:build:jenkins:template-folder;service:build:jenkins;;FALSE;TEXT;CREATE;;;FALSE
