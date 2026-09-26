@@ -38,16 +38,17 @@ class JenkinsFolderCreator {
 	private final String baseUrl;
 	private final CurlProcessor curl;
 
-	/**
-	 * @param baseUrl Jenkins base URL.
-	 * @param curl    Authenticated processor.
-	 */
+
 	/**
 	 * Processor of the probes (folder existence, credential store availability): a failure is an expected answer,
 	 * not logged as an error.
 	 */
 	private final CurlProcessor probe;
 
+	/**
+	 * @param baseUrl Jenkins base URL.
+	 * @param curl    Authenticated processor.
+	 */
 	JenkinsFolderCreator(final String baseUrl, final CurlProcessor curl, final CurlProcessor probe) {
 		this.baseUrl = Strings.CS.appendIfMissing(baseUrl, "/");
 		this.curl = curl;
@@ -55,16 +56,11 @@ class JenkinsFolderCreator {
 	}
 
 	/**
-	 * Parse a folder definition.
-	 *
-	 * @param json The JSON definition of the root folder.
-	 * @return The parsed definition.
-	 */
-	/**
 	 * Jenkins plug-in (short name) providing the credential classes of a package prefix. Every credential also needs
 	 * the "credentials" plug-in itself.
 	 */
 	private static final Map<String, String> CREDENTIAL_PLUGINS = new LinkedHashMap<>();
+
 	static {
 		CREDENTIAL_PLUGINS.put("com.cloudbees.plugins.credentials.", "credentials");
 		CREDENTIAL_PLUGINS.put("org.jenkinsci.plugins.plaincredentials.", "plain-credentials");
@@ -138,6 +134,12 @@ class JenkinsFolderCreator {
 		}
 	}
 
+	/**
+	 * Parse a folder definition.
+	 *
+	 * @param json The JSON definition of the root folder.
+	 * @return The parsed definition.
+	 */
 	static JenkinsFolder parse(final String json) {
 		try {
 			final var folder = MAPPER.readValue(json, JenkinsFolder.class);
@@ -166,13 +168,6 @@ class JenkinsFolderCreator {
 	}
 
 	/**
-	 * Create the root folder at the given path, then its credentials and nested folders. Missing parent folders of the
-	 * path are created empty.
-	 *
-	 * @param path       Path of the root folder, segments separated by <code>/</code>.
-	 * @param definition The root folder definition.
-	 */
-	/**
 	 * Root folder of a definition when the subscription has no job: the root {@code name} when defined, otherwise
 	 * the single top-level folder (which then becomes the definition). Several top-level folders without a root
 	 * name cannot be created without a job naming their parent.
@@ -192,6 +187,13 @@ class JenkinsFolderCreator {
 		throw new ValidationJsonException(JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-root");
 	}
 
+	/**
+	 * Create the root folder at the given path, then its credentials and nested folders. Missing parent folders of the
+	 * path are created empty.
+	 *
+	 * @param path       Path of the root folder, segments separated by <code>/</code>.
+	 * @param definition The root folder definition.
+	 */
 	void create(final String path, final JenkinsFolder definition) {
 		checkPlugins(definition);
 		final var parents = new ArrayList<String>();
