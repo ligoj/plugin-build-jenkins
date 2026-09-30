@@ -576,6 +576,8 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true},{\"shortName\":\"role-strategy\",\"active\":true}]}")));
+		// The strategy is the active authorization mode
+		httpServer.stubFor(get(urlPathEqualTo("/role-strategy/strategy/getAllRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		// Project role of the folder for the "dev" group: created (overwritten) then assigned to the group
 		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/addRole"))
 				.withRequestBody(WireMock.equalTo("type=projectRoles&roleName=dev-ligoj-bootstrap&permissionIds=hudson.model.Item.Build%2Chudson.model.Run.Delete&overwrite=true&pattern=%28%3Fi%29ligoj-bootstrap"))
@@ -642,9 +644,75 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.start();
 
 		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
-		this.resource.create(this.subscription);
+		final var warnings = new ArrayList<String>();
+		final var resource = new JenkinsPluginResource() {
+			@Override
+			protected ResponseWarnings.Sink responseWarnings() {
+				return (code, parameters) -> warnings.add(code + " " + parameters);
+			}
+		};
+		applicationContext.getAutowireCapableBeanFactory().autowireBean(resource);
+		resource.create(this.subscription);
 		httpServer.verify(2, postRequestedFor(urlPathMatching(".*createItem.*")));
 		httpServer.verify(0, postRequestedFor(urlPathMatching("/role-strategy/.*")));
+		// The caller is told what was skipped
+		Assertions.assertEquals(1, warnings.size(), warnings.toString());
+		Assertions.assertEquals("jenkins-folder-roles-skipped {plugin=role-strategy, folder=ligoj-bootstrap, groups=dev, count=1}", warnings.getFirst());
+	}
+
+	@Test
+	void responseWarnings() {
+		final var parameters = ResponseWarnings.parameters("folder", "folder6/folder6.1", "groups", "dev, test");
+		// Outside a REST call: only logged
+		Assertions.assertFalse(ResponseWarnings.add(null, "some-code", parameters));
+		Assertions.assertFalse(ResponseWarnings.add(new org.apache.cxf.message.MessageImpl(), "some-code", parameters));
+
+		// Within a call: added to the servlet response as percent-encoded JSON, one header per warning
+		final var response = org.mockito.Mockito.mock(jakarta.servlet.http.HttpServletResponse.class);
+		final var current = new org.apache.cxf.message.MessageImpl();
+		current.put(ResponseWarnings.HTTP_RESPONSE, response);
+		Assertions.assertTrue(ResponseWarnings.add(current, "some-code", parameters));
+		org.mockito.Mockito.verify(response).addHeader(ResponseWarnings.HEADER,
+				"%7B%22code%22%3A%22some-code%22%2C%22parameters%22%3A%7B%22folder%22%3A%22folder6%2Ffolder6.1%22%2C%22groups%22%3A%22dev%2C%20test%22%7D%7D");
+		Assertions.assertEquals("%7B%22code%22%3A%22c%22%2C%22parameters%22%3A%7B%7D%7D", ResponseWarnings.encode("c", null));
+
+		// A committed response cannot carry it anymore
+		org.mockito.Mockito.when(response.isCommitted()).thenReturn(true);
+		Assertions.assertFalse(ResponseWarnings.add(current, "some-code", parameters));
+	}
+
+	/**
+	 * The Role-based Authorization Strategy plug-in is installed but is not the active authorization mode of Jenkins:
+	 * its endpoints answer 404. The roles are skipped with a dedicated warning, the rest is created.
+	 */
+	@Test
+	void createFolderRoleStrategyInactive() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true},{\"shortName\":\"role-strategy\",\"active\":true}]}")));
+		httpServer.stubFor(get(urlPathEqualTo("/role-strategy/strategy/getAllRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlPathMatching(".*createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		final var warnings = new ArrayList<String>();
+		final var resource = new JenkinsPluginResource() {
+			@Override
+			protected ResponseWarnings.Sink responseWarnings() {
+				return (code, parameters) -> warnings.add(code + " " + parameters);
+			}
+		};
+		applicationContext.getAutowireCapableBeanFactory().autowireBean(resource);
+		resource.create(this.subscription);
+		httpServer.verify(2, postRequestedFor(urlPathMatching(".*createItem.*")));
+		httpServer.verify(1, getRequestedFor(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")));
+		httpServer.verify(0, postRequestedFor(urlPathMatching("/role-strategy/.*")));
+		Assertions.assertEquals(1, warnings.size(), warnings.toString());
+		Assertions.assertEquals("jenkins-folder-roles-inactive {plugin=role-strategy, folder=ligoj-bootstrap, groups=dev, count=1}", warnings.getFirst());
 	}
 
 	@Test
@@ -657,6 +725,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(post(urlPathMatching(".*createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(get(urlPathEqualTo("/role-strategy/strategy/getAllRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/addRole")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
 		httpServer.start();
 

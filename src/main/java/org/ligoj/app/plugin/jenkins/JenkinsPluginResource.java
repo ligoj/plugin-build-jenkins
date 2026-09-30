@@ -238,7 +238,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			}
 			try (var curl = new JenkinsCurlProcessor(parameters, new JenkinsWriteCallback());
 					var probe = new JenkinsCurlProcessor(parameters, new QuietHttpResponseCallback())) {
-				new JenkinsFolderCreator(parameters.get(PARAMETER_URL), curl, probe).create(job, definition);
+				new JenkinsFolderCreator(parameters.get(PARAMETER_URL), curl, probe, responseWarnings()).create(job, definition);
 			}
 			return;
 		}
@@ -302,6 +302,13 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 				}
 			}
 		}
+	}
+
+	/**
+	 * Sink of the non-blocking warnings of a subscription creation, reported to the caller.
+	 */
+	protected ResponseWarnings.Sink responseWarnings() {
+		return ResponseWarnings::add;
 	}
 
 	private String encode(final String job) {

@@ -19,6 +19,8 @@ export default {
   'error.rule.jenkins-folder-credential': 'Chaque identifiant doit avoir un id et un stapler-class',
   'error.rule.jenkins-folder-role': 'Chaque rôle doit avoir une liste de permissions',
   'error.rule.jenkins-folder-plugin': 'Plugins Jenkins requis par les identifiants non installés : {plugins}',
+  'warning.jenkins-folder-roles-skipped': 'Le plugin Jenkins "{plugin}" (Role-based Authorization Strategy) n\'est pas installé : les {count} rôle(s) du dossier {folder} ({groups}) n\'ont pas été créés',
+  'warning.jenkins-folder-roles-inactive': 'Le plugin Jenkins "{plugin}" (Role-based Authorization Strategy) est installé mais n\'est pas le mode d\'autorisation sélectionné (Administrer Jenkins > Sécurité) : les {count} rôle(s) du dossier {folder} ({groups}) n\'ont pas été créés',
   'service:build:jenkins:build': 'Lancer',
   'service:build:jenkins:building': 'Construction',
   'service:build:jenkins:status': 'Statut',

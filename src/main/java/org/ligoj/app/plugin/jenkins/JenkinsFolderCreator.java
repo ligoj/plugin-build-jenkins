@@ -48,13 +48,24 @@ class JenkinsFolderCreator {
 	private final CurlProcessor probe;
 
 	/**
+	 * Sink of the non-blocking warnings (skipped roles, ...), reported to the caller of the REST call.
+	 */
+	private final ResponseWarnings.Sink warnings;
+
+	/**
 	 * @param baseUrl Jenkins base URL.
-	 * @param curl    Authenticated processor.
+	 * @param curl    Authenticated processor of the write requests.
+	 * @param probe   Authenticated processor of the probes, quiet on failure.
 	 */
 	JenkinsFolderCreator(final String baseUrl, final CurlProcessor curl, final CurlProcessor probe) {
+		this(baseUrl, curl, probe, ResponseWarnings::add);
+	}
+
+	JenkinsFolderCreator(final String baseUrl, final CurlProcessor curl, final CurlProcessor probe, final ResponseWarnings.Sink warnings) {
 		this.baseUrl = Strings.CS.appendIfMissing(baseUrl, "/");
 		this.curl = curl;
 		this.probe = probe;
+		this.warnings = warnings;
 	}
 
 	/**
@@ -142,6 +153,12 @@ class JenkinsFolderCreator {
 	 * Active Jenkins plug-ins (short names), {@code null} when the list could not be read.
 	 */
 	private Set<String> installedPlugins;
+
+	/**
+	 * Whether the Role-based Authorization Strategy is the active authorization mode of Jenkins, {@code null} until
+	 * probed. The plug-in exposes its {@code role-strategy/strategy/*} endpoints only when it is the active strategy.
+	 */
+	private Boolean roleStrategyActive;
 
 	private static boolean hasRoles(final JenkinsFolder folder) {
 		return MapUtils.isNotEmpty(folder.getRoles()) || CollectionUtils.emptyIfNull(folder.getFolders()).stream().anyMatch(JenkinsFolderCreator::hasRoles);
@@ -289,7 +306,8 @@ class JenkinsFolderCreator {
 	/**
 	 * Create (overwrite) the project roles of a folder and assign each one to its group, like the Ligoj CLI: role
 	 * {@code <group>-<folder path>} on the pattern of the folder (its sub-items too unless {@code recursive} is
-	 * {@code false}). Skipped with a warning when the Role-based Authorization Strategy plug-in is not installed.
+	 * {@code false}). Skipped with a warning when the Role-based Authorization Strategy plug-in is not installed
+	 * ({@code jenkins-folder-roles-skipped}) or is not the active authorization mode ({@code jenkins-folder-roles-inactive}).
 	 */
 	private void createRoles(final List<String> path, final Map<String, JenkinsRole> roles) {
 		if (roles.isEmpty()) {
@@ -297,7 +315,12 @@ class JenkinsFolderCreator {
 		}
 		final var folder = String.join("/", path);
 		if (installedPlugins == null || !installedPlugins.contains(ROLE_STRATEGY_PLUGIN)) {
-			log.warn("Jenkins plug-in '{}' is not installed: the {} role(s) of folder {} are ignored", ROLE_STRATEGY_PLUGIN, roles.size(), folder);
+			// Reported to the caller (UI toast) and logged, the rest of the definition is still created
+			warnRolesSkipped("jenkins-folder-roles-skipped", folder, roles);
+			return;
+		}
+		if (!isRoleStrategyActive()) {
+			warnRolesSkipped("jenkins-folder-roles-inactive", folder, roles);
 			return;
 		}
 		roles.forEach((group, role) -> {
@@ -316,6 +339,25 @@ class JenkinsFolderCreator {
 				throw new BusinessException("Assigning the Jenkins role {} to group {} failed.", roleName, group);
 			}
 		});
+	}
+
+	private void warnRolesSkipped(final String code, final String folder, final Map<String, JenkinsRole> roles) {
+		warnings.warn(code, ResponseWarnings.parameters("plugin", ROLE_STRATEGY_PLUGIN, "folder", folder,
+				"groups", String.join(", ", roles.keySet()), "count", String.valueOf(roles.size())));
+	}
+
+	/**
+	 * Probe once the Role-based Authorization Strategy: installed but not selected as the authorization mode, Jenkins
+	 * answers 404 to its endpoints, and the role creation would fail with a bare "Not Found" page.
+	 */
+	private boolean isRoleStrategyActive() {
+		if (roleStrategyActive == null) {
+			roleStrategyActive = probe.process(new CurlRequest(HttpMethod.GET, baseUrl + "role-strategy/strategy/getAllRoles?type=projectRoles", null));
+			if (!roleStrategyActive) {
+				log.info("Jenkins plug-in {} is installed but is not the active authorization strategy", ROLE_STRATEGY_PLUGIN);
+			}
+		}
+		return roleStrategyActive;
 	}
 
 	/**

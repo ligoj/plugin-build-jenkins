@@ -113,8 +113,10 @@ from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `do
 A folder may also declare `roles`, keyed by the group name: each entry lists the Jenkins permission identifiers
 granted to that group on the folder (and its sub-folders and jobs, unless `"recursive": false`). Like the Ligoj CLI,
 a project role named `<group>-<folder path>` is created (or overwritten) through the Role-based Authorization
-Strategy plug-in, then assigned to the group. When that plug-in (`role-strategy`) is not installed, the roles are
-skipped with a warning in the API log and the rest is created.
+Strategy plug-in, then assigned to the group. When that plug-in (`role-strategy`) is not installed, or is installed
+but not selected as the authorization mode (Manage Jenkins > Security > Authorization), the roles are skipped and the
+rest is created: the warning is returned to the caller (`X-Ligoj-Warning` header, shown as a toast in the UI and
+printed by the CLI) and logged.
 
 ```json
 {
