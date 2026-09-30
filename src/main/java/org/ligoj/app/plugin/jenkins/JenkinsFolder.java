@@ -34,6 +34,11 @@ public class JenkinsFolder {
 	private String name;
 
 	/**
+	 * Optional display name, shown by Jenkins instead of the name.
+	 */
+	private String displayName;
+
+	/**
 	 * Optional description.
 	 */
 	private String description;

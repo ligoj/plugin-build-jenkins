@@ -229,8 +229,10 @@ class JenkinsFolderCreator {
 			return;
 		}
 		final var mode = StringUtils.defaultIfBlank(definition.getMode(), JenkinsFolder.MODE_FOLDER);
-		final var configXml = "<" + mode + "><description>"
-				+ StringEscapeUtils.escapeXml10(StringUtils.defaultString(definition.getDescription())) + "</description></" + mode + ">";
+		final var displayName = StringUtils.trimToNull(definition.getDisplayName());
+		final var configXml = "<" + mode + ">"
+				+ (displayName == null ? "" : "<displayName>" + StringEscapeUtils.escapeXml10(displayName) + "</displayName>")
+				+ "<description>" + StringEscapeUtils.escapeXml10(StringUtils.defaultString(definition.getDescription())) + "</description></" + mode + ">";
 		final var request = new CurlRequest(HttpMethod.POST,
 				toUrl(parents) + "createItem?name=" + UriUtils.encode(name, StandardCharsets.UTF_8), configXml, "Content-Type:application/xml");
 		if (!curl.process(request)) {

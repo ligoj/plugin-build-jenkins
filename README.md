@@ -97,8 +97,9 @@ mails `jane@corp.org` and is enabled.
 
 ## Folder mode
 
-`service:build:jenkins:template-folder` holds a JSON definition of the folder tree to create, with descriptions,
-credentials and nested folders. `service:build:jenkins:job` names the root folder (path allowed, e.g. `team/Admin`);
+`service:build:jenkins:template-folder` holds a JSON definition of the folder tree to create, with display names,
+descriptions, credentials and nested folders (`name` is the Jenkins identifier, `displayName` the optional label shown
+instead of it). `service:build:jenkins:job` names the root folder (path allowed, e.g. `team/Admin`);
 when empty, the root is the definition `name`, or its single top-level folder, and is stored as the job. Existing
 folders are kept (the creation can be replayed), credentials are created in the store of the folder declaring them.
 
@@ -114,6 +115,7 @@ from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `do
   "folders": [
     {
       "name": "folder6",
+      "displayName": "Folder 6 (team A)",
       "description": "Folder6 description",
       "credentials": [
         {

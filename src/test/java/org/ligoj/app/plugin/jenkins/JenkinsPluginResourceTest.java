@@ -533,7 +533,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		em.flush();
 	}
 
-	private static final String FOLDER = "{\"description\":\"Root & co\",\"roles\":{\"dev\":{}},"
+	private static final String FOLDER = "{\"description\":\"Root & co\",\"displayName\":\"Root <display>\",\"roles\":{\"dev\":{}},"
 			+ "\"credentials\":[{\"id\":\"c1\",\"description\":\"d\",\"stapler-class\":\"org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl\","
 			+ "\"attributes\":{\"secret\":\"s3cret\",\"$redact\":\"secret\"}}],"
 			+ "\"folders\":[{\"name\":\"child.1\",\"mode\":\"jenkins.branch.OrganizationFolder\"}]}";
@@ -565,7 +565,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		// Root folder, named by the subscription job, with its escaped description
 		httpServer.stubFor(post(urlEqualTo("/createItem?name=ligoj-bootstrap"))
-				.withRequestBody(WireMock.equalTo("<com.cloudbees.hudson.plugins.folder.Folder><description>Root &amp; co</description></com.cloudbees.hudson.plugins.folder.Folder>"))
+				.withRequestBody(WireMock.equalTo("<com.cloudbees.hudson.plugins.folder.Folder><displayName>Root &lt;display&gt;</displayName><description>Root &amp; co</description></com.cloudbees.hudson.plugins.folder.Folder>"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		// Its credential: the tooling hint '$redact' is not sent, the roles are ignored
 		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials"))
@@ -580,6 +580,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		// Nested organization folder
 		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/createItem?name=child.1"))
 				.withRequestBody(WireMock.containing("<jenkins.branch.OrganizationFolder>"))
+				.withRequestBody(WireMock.notMatching(".*displayName.*"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.start();
 
