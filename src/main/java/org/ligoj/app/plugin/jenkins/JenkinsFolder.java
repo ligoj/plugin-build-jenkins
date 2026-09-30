@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A Jenkins folder to create with its credentials and nested folders. Unknown properties, such as the roles of the
@@ -57,4 +58,10 @@ public class JenkinsFolder {
 	 * Nested folders.
 	 */
 	private List<JenkinsFolder> folders;
+
+	/**
+	 * Optional project roles of this folder, keyed by the group name they are assigned to. Requires the Role-based
+	 * Authorization Strategy plug-in in Jenkins, otherwise skipped with a warning.
+	 */
+	private Map<String, JenkinsRole> roles;
 }

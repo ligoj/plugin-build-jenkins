@@ -110,6 +110,12 @@ by the credentials are checked before anything is created: `credentials`, plus t
 from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `docker-commons`, ...) or declared with
 `"plugin": "<short name>"`.
 
+A folder may also declare `roles`, keyed by the group name: each entry lists the Jenkins permission identifiers
+granted to that group on the folder (and its sub-folders and jobs, unless `"recursive": false`). Like the Ligoj CLI,
+a project role named `<group>-<folder path>` is created (or overwritten) through the Role-based Authorization
+Strategy plug-in, then assigned to the group. When that plug-in (`role-strategy`) is not installed, the roles are
+skipped with a warning in the API log and the rest is created.
+
 ```json
 {
   "folders": [
@@ -157,6 +163,10 @@ from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `do
         {
           "name": "folder6.1",
           "description": "Folder6.1 description",
+          "roles": {
+            "dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
+            "test": { "permissions": ["hudson.model.Item.Build", "hudson.model.Item.Read"] }
+          },
           "credentials": [
             {
               "id": "aws-folder6-1",
@@ -178,5 +188,6 @@ from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `do
 ```
 
 With an empty job, this definition creates `folder6` (stored as the subscription job) with its three credentials,
-then `folder6/folder6.1` with its AWS credential and `folder6/folder6.2`. A folder may also set
+then `folder6/folder6.1` with its AWS credential and the project roles `dev-folder6/folder6.1` (on the folder only)
+and `test-folder6/folder6.1` (folder and its content) assigned to the `dev` and `test` groups, then `folder6/folder6.2`. A folder may also set
 `"mode": "jenkins.branch.OrganizationFolder"` to create an organization folder instead of a plain one.

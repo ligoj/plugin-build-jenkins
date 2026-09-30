@@ -533,7 +533,8 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		em.flush();
 	}
 
-	private static final String FOLDER = "{\"description\":\"Root & co\",\"displayName\":\"Root <display>\",\"roles\":{\"dev\":{}},"
+	private static final String FOLDER = "{\"description\":\"Root & co\",\"displayName\":\"Root <display>\","
+			+ "\"roles\":{\"dev\":{\"permissions\":[\"hudson.model.Item.Build\",\"hudson.model.Run.Delete\"],\"recursive\":false}},"
 			+ "\"credentials\":[{\"id\":\"c1\",\"description\":\"d\",\"stapler-class\":\"org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl\","
 			+ "\"attributes\":{\"secret\":\"s3cret\",\"$redact\":\"secret\"}}],"
 			+ "\"folders\":[{\"name\":\"child.1\",\"mode\":\"jenkins.branch.OrganizationFolder\"}]}";
@@ -574,7 +575,14 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 				.withRequestBody(WireMock.notMatching(".*redact.*"))
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
-				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true}]}")));
+				.withBody("{\"plugins\":[{\"shortName\":\"cloudbees-folder\",\"active\":true},{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true},{\"shortName\":\"role-strategy\",\"active\":true}]}")));
+		// Project role of the folder for the "dev" group: created (overwritten) then assigned to the group
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/addRole"))
+				.withRequestBody(WireMock.equalTo("type=projectRoles&roleName=dev-ligoj-bootstrap&permissionIds=hudson.model.Item.Build%2Chudson.model.Run.Delete&overwrite=true&pattern=%28%3Fi%29ligoj-bootstrap"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/assignGroupRole"))
+				.withRequestBody(WireMock.equalTo("type=projectRoles&roleName=dev-ligoj-bootstrap&group=dev"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		// The credential store of the folder exists (Credentials plug-in installed)
 		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
 		// Nested organization folder
@@ -590,6 +598,8 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=ligoj-bootstrap")));
 		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/createItem?name=child.1")));
 		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/addRole")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/assignGroupRole")));
 		// The template job path is not used at all
 		httpServer.verify(0, getRequestedFor(urlPathMatching("/job/.*/config.xml")));
 	}
@@ -613,6 +623,57 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
 		this.resource.create(this.subscription);
 		httpServer.verify(1, postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/domain/_/createCredentials")));
+	}
+
+	/**
+	 * Without the Role-based Authorization Strategy plug-in, the roles are skipped with a warning: the folders and
+	 * credentials are still created.
+	 */
+	@Test
+	void createFolderRoleStrategyMissing() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true}]}")));
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlPathMatching(".*createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		this.resource.create(this.subscription);
+		httpServer.verify(2, postRequestedFor(urlPathMatching(".*createItem.*")));
+		httpServer.verify(0, postRequestedFor(urlPathMatching("/role-strategy/.*")));
+	}
+
+	@Test
+	void createFolderRoleFailed() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"credentials\",\"active\":true},{\"shortName\":\"plain-credentials\",\"active\":true},{\"shortName\":\"role-strategy\",\"active\":true}]}")));
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/credentials/store/folder/api/json?tree=id")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlPathMatching(".*createCredentials")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/addRole")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+		httpServer.start();
+
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		final var exception = Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
+		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("Creating the Jenkins role"), exception.getMessage());
+	}
+
+	@Test
+	void createFolderInvalidRole() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), "{\"roles\":{\"dev\":{}}}");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription)),
+				JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-role");
+		httpServer.verify(0, postRequestedFor(urlPathMatching(".*createItem.*")));
 	}
 
 	@Test

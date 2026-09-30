@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { folderDefinitionError } from '../fields/folderDefinition.js'
 
 describe('folderDefinitionError', () => {
-  it('accepts an empty value (the template job is used) and a complete tree, roles ignored', () => {
+  it('accepts an empty value (the template job is used) and a complete tree', () => {
     expect(folderDefinitionError('')).toBeNull()
     expect(folderDefinitionError(null)).toBeNull()
     expect(folderDefinitionError(JSON.stringify({
-      description: 'd', roles: { dev: {} },
+      description: 'd', roles: { dev: { permissions: ['hudson.model.Item.Build'] } },
       credentials: [{ id: 'c', 'stapler-class': 'x.Y', attributes: { secret: 's' } }],
       folders: [{ name: 'a', folders: [{ name: 'b' }] }],
     }))).toBeNull()
@@ -24,5 +24,13 @@ describe('folderDefinitionError', () => {
   it('requires an id and a class on every credential', () => {
     expect(folderDefinitionError('{"credentials":[{"id":"c"}]}')).toBe('service:build:jenkins:template-folder-invalid-credential')
     expect(folderDefinitionError('{"folders":[{"name":"a","credentials":[{"stapler-class":"x"}]}]}')).toBe('service:build:jenkins:template-folder-invalid-credential')
+  })
+
+  it('requires a permissions list on every role, keyed by group', () => {
+    expect(folderDefinitionError('{"roles":{"dev":{"permissions":["hudson.model.Item.Build"]}}}')).toBeNull()
+    expect(folderDefinitionError('{"roles":{"dev":{}}}')).toBe('service:build:jenkins:template-folder-invalid-role')
+    expect(folderDefinitionError('{"roles":{"dev":{"permissions":[]}}}')).toBe('service:build:jenkins:template-folder-invalid-role')
+    expect(folderDefinitionError('{"roles":[]}')).toBe('service:build:jenkins:template-folder-invalid-role')
+    expect(folderDefinitionError('{"folders":[{"name":"a","roles":{"dev":{"permissions":[""]}}}]}')).toBe('service:build:jenkins:template-folder-invalid-role')
   })
 })

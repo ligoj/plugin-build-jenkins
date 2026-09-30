@@ -15,11 +15,13 @@ export default {
   'service:build:jenkins:template-folder-invalid-json': 'The definition must be a JSON object',
   'service:build:jenkins:template-folder-invalid-name': 'Every nested folder needs a name',
   'service:build:jenkins:template-folder-invalid-credential': 'Every credential needs an id and a stapler-class',
+  'service:build:jenkins:template-folder-invalid-role': 'Every role needs a permissions list',
   // Backend validation rules of the folder definition (rendered by the host error store as rule.<name>)
   'error.rule.jenkins-folder-json': 'The folder definition must be a JSON object',
   'error.rule.jenkins-folder-name': 'Every nested folder needs a name',
   'error.rule.jenkins-folder-mode': 'Unsupported folder type',
   'error.rule.jenkins-folder-credential': 'Every credential needs an id and a stapler-class',
+  'error.rule.jenkins-folder-role': 'Every role needs a permissions list',
   'error.rule.jenkins-folder-plugin': 'Jenkins plug-ins required by the credentials are not installed: {plugins}',
   'service:build:jenkins:build': 'Build',
   'service:build:jenkins:building': 'Building',

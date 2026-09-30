@@ -5,6 +5,8 @@ package org.ligoj.app.plugin.jenkins;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import java.net.URLEncoder;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
@@ -108,24 +110,15 @@ class JenkinsFolderCreator {
 	 */
 	void checkPlugins(final JenkinsFolder definition) {
 		final var required = requiredPlugins(definition);
-		if (required.isEmpty()) {
+		if (required.isEmpty() && !hasRoles(definition)) {
 			return;
 		}
-		final var request = new CurlRequest(HttpMethod.GET, baseUrl + "pluginManager/api/json?depth=1&tree=plugins[shortName,active]", null);
-		request.setSaveResponse(true);
-		if (!probe.process(request) || request.getResponse() == null) {
+		installedPlugins = readInstalledPlugins();
+		if (installedPlugins == null) {
 			log.warn("Unable to read the Jenkins plug-in list, the credential plug-ins {} are not checked", required);
 			return;
 		}
-		final Set<String> installed;
-		try {
-			installed = MAPPER.readValue(request.getResponse(), JenkinsPluginList.class).getPlugins().stream()
-					.filter(JenkinsPluginList.Plugin::isActive).map(JenkinsPluginList.Plugin::getShortName)
-					.collect(Collectors.toSet());
-		} catch (final JacksonException e) {
-			log.warn("Unreadable Jenkins plug-in list, the credential plug-ins {} are not checked: {}", required, e.getOriginalMessage());
-			return;
-		}
+		final var installed = installedPlugins;
 		final var missing = required.stream().filter(pl -> !installed.contains(pl)).toList();
 		if (!missing.isEmpty()) {
 			log.info("Jenkins plug-ins {} required by the folder credentials are not installed", missing);
@@ -140,6 +133,40 @@ class JenkinsFolderCreator {
 	 * @param json The JSON definition of the root folder.
 	 * @return The parsed definition.
 	 */
+	/**
+	 * Jenkins plug-in providing the project roles.
+	 */
+	static final String ROLE_STRATEGY_PLUGIN = "role-strategy";
+
+	/**
+	 * Active Jenkins plug-ins (short names), {@code null} when the list could not be read.
+	 */
+	private Set<String> installedPlugins;
+
+	private static boolean hasRoles(final JenkinsFolder folder) {
+		return MapUtils.isNotEmpty(folder.getRoles()) || CollectionUtils.emptyIfNull(folder.getFolders()).stream().anyMatch(JenkinsFolderCreator::hasRoles);
+	}
+
+	/**
+	 * Active plug-ins of the Jenkins instance, {@code null} when the list cannot be read (older Jenkins, restricted
+	 * token).
+	 */
+	private Set<String> readInstalledPlugins() {
+		final var request = new CurlRequest(HttpMethod.GET, baseUrl + "pluginManager/api/json?depth=1&tree=plugins[shortName,active]", null);
+		request.setSaveResponse(true);
+		if (!probe.process(request) || request.getResponse() == null) {
+			return null;
+		}
+		try {
+			return MAPPER.readValue(request.getResponse(), JenkinsPluginList.class).getPlugins().stream()
+					.filter(JenkinsPluginList.Plugin::isActive).map(JenkinsPluginList.Plugin::getShortName)
+					.collect(Collectors.toSet());
+		} catch (final JacksonException e) {
+			log.warn("Unreadable Jenkins plug-in list: {}", e.getOriginalMessage());
+			return null;
+		}
+	}
+
 	static JenkinsFolder parse(final String json) {
 		try {
 			final var folder = MAPPER.readValue(json, JenkinsFolder.class);
@@ -162,6 +189,11 @@ class JenkinsFolderCreator {
 		CollectionUtils.emptyIfNull(folder.getCredentials()).forEach(c -> {
 			if (StringUtils.isBlank(c.getId()) || StringUtils.isBlank(c.getStaplerClass())) {
 				throw new ValidationJsonException(JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-credential");
+			}
+		});
+		MapUtils.emptyIfNull(folder.getRoles()).forEach((group, role) -> {
+			if (StringUtils.isBlank(group) || role == null || CollectionUtils.emptyIfNull(role.getPermissions()).stream().noneMatch(StringUtils::isNotBlank)) {
+				throw new ValidationJsonException(JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-role", group);
 			}
 		});
 		CollectionUtils.emptyIfNull(folder.getFolders()).forEach(f -> validate(f, false));
@@ -214,6 +246,7 @@ class JenkinsFolderCreator {
 			checkCredentialStore(path);
 			credentials.forEach(c -> createCredential(path, c));
 		}
+		createRoles(path, MapUtils.emptyIfNull(definition.getRoles()));
 		CollectionUtils.emptyIfNull(definition.getFolders()).forEach(f -> createRecursive(path, f.getName(), f));
 	}
 
@@ -251,6 +284,52 @@ class JenkinsFolderCreator {
 					+ " plug-ins of the credential types, e.g. 'plain-credentials', 'ssh-credentials') must be installed in Jenkins.",
 					String.join("/", path));
 		}
+	}
+
+	/**
+	 * Create (overwrite) the project roles of a folder and assign each one to its group, like the Ligoj CLI: role
+	 * {@code <group>-<folder path>} on the pattern of the folder (its sub-items too unless {@code recursive} is
+	 * {@code false}). Skipped with a warning when the Role-based Authorization Strategy plug-in is not installed.
+	 */
+	private void createRoles(final List<String> path, final Map<String, JenkinsRole> roles) {
+		if (roles.isEmpty()) {
+			return;
+		}
+		final var folder = String.join("/", path);
+		if (installedPlugins == null || !installedPlugins.contains(ROLE_STRATEGY_PLUGIN)) {
+			log.warn("Jenkins plug-in '{}' is not installed: the {} role(s) of folder {} are ignored", ROLE_STRATEGY_PLUGIN, roles.size(), folder);
+			return;
+		}
+		roles.forEach((group, role) -> {
+			final var roleName = group + "-" + folder;
+			final var pattern = "(?i)" + folder + (Boolean.FALSE.equals(role.getRecursive()) ? "" : "(/.*)?");
+			final var permissions = role.getPermissions().stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.joining(","));
+			final var add = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/addRole",
+					form("type", "projectRoles", "roleName", roleName, "permissionIds", permissions, "overwrite", "true", "pattern", pattern),
+					"Content-Type:application/x-www-form-urlencoded");
+			if (!curl.process(add)) {
+				throw new BusinessException("Creating the Jenkins role {} for folder {} failed.", roleName, folder);
+			}
+			final var assign = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/assignGroupRole",
+					form("type", "projectRoles", "roleName", roleName, "group", group), "Content-Type:application/x-www-form-urlencoded");
+			if (!curl.process(assign)) {
+				throw new BusinessException("Assigning the Jenkins role {} to group {} failed.", roleName, group);
+			}
+		});
+	}
+
+	/**
+	 * Form-encoded body from key/value pairs.
+	 */
+	private static String form(final String... keyValues) {
+		final var body = new StringBuilder();
+		for (var i = 0; i < keyValues.length; i += 2) {
+			if (i > 0) {
+				body.append('&');
+			}
+			body.append(keyValues[i]).append('=').append(URLEncoder.encode(keyValues[i + 1], StandardCharsets.UTF_8));
+		}
+		return body.toString();
 	}
 
 	private void createCredential(final List<String> path, final JenkinsCredential credential) {
