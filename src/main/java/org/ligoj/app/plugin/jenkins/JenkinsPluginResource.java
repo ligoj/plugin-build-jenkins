@@ -286,14 +286,25 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			// Validate the node settings
 			validateAdminAccess(parameters);
 
-			// Delete the job, or the root folder created by a folder-mode subscription (with its whole tree): the
-			// path is addressed segment by segment ("job/team/job/Admin")
+			// Delete the job, or the root folder created by a folder-mode subscription (with its whole tree and its
+			// project roles): the path is addressed segment by segment ("job/team/job/Admin")
 			final var job = StringUtils.trimToNull(parameters.get(PARAMETER_JOB));
 			if (job == null) {
 				log.info("No job attached to the subscription {}, nothing to delete on Jenkins", subscription);
 				return;
 			}
 			final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
+
+			// Folder mode: remove the project roles of the folder tree first, the folder is kept when it fails
+			final var folderDefinition = StringUtils.trimToNull(parameters.get(PARAMETER_TEMPLATE_FOLDER));
+			if (folderDefinition != null) {
+				final var definition = JenkinsFolderCreator.definitionAt(job, JenkinsFolderCreator.parse(folderDefinition));
+				try (var curl = new JenkinsCurlProcessor(parameters, new JenkinsWriteCallback());
+						var probe = new JenkinsCurlProcessor(parameters, new QuietHttpResponseCallback())) {
+					new JenkinsFolderCreator(jenkinsBaseUrl, curl, probe, responseWarnings()).deleteRoles(job, definition);
+				}
+			}
+
 			final var curlRequest = new CurlRequest(HttpMethod.POST,
 					jenkinsBaseUrl + "job/" + toJobPath(job) + "/doDelete", StringUtils.EMPTY);
 			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {

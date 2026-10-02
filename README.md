@@ -32,7 +32,9 @@ Provides the following features :
 A subscription in create mode creates something on Jenkins, then links the project to it. Two exclusive ways, chosen by
 the parameters: a template job (`service:build:jenkins:template-job`) or a folder definition
 (`service:build:jenkins:template-folder`). Deleting the subscription with the "remote data" option deletes the created
-job, or the created root folder with its whole tree.
+job, or the created root folder with its whole tree. The project roles created for the folders (see `roles`) are
+removed first, when they still exist and the Role-based Authorization Strategy is the active authorization mode; if
+their removal fails, the folder is kept and the unsubscription can be retried.
 
 ## Template job
 
@@ -166,7 +168,7 @@ printed by the CLI) and logged.
           "name": "folder6.1",
           "description": "Folder6.1 description",
           "roles": {
-            "dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
+            "projet-1-dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
             "test": { "permissions": ["hudson.model.Item.Build", "hudson.model.Item.Read"] }
           },
           "credentials": [

@@ -324,7 +324,7 @@ class JenkinsFolderCreator {
 			return;
 		}
 		roles.forEach((group, role) -> {
-			final var roleName = group + "-" + folder;
+			final var roleName = roleName(group, folder);
 			final var pattern = "(?i)" + folder + (Boolean.FALSE.equals(role.getRecursive()) ? "" : "(/.*)?");
 			final var permissions = role.getPermissions().stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.joining(","));
 			final var add = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/addRole",
@@ -339,6 +339,76 @@ class JenkinsFolderCreator {
 				throw new BusinessException("Assigning the Jenkins role {} to group {} failed.", roleName, group);
 			}
 		});
+	}
+
+	/**
+	 * Name of the project role of a group on a folder, shared by the creation and the deletion.
+	 */
+	static String roleName(final String group, final String folder) {
+		return group + "-" + folder;
+	}
+
+	/**
+	 * Definition of the folder created at the subscription job: the single top-level folder when the job was derived
+	 * from it (definition without root name, see {@link #resolveRoot(JenkinsFolder)}), the whole definition otherwise.
+	 *
+	 * @param job        The subscription job, path of the root folder.
+	 * @param definition The parsed definition.
+	 * @return The definition of the folder at the job path.
+	 */
+	static JenkinsFolder definitionAt(final String job, final JenkinsFolder definition) {
+		final var folders = CollectionUtils.emptyIfNull(definition.getFolders());
+		if (StringUtils.isBlank(definition.getName()) && folders.size() == 1) {
+			final var root = folders.iterator().next();
+			if (StringUtils.trimToEmpty(root.getName()).equals(StringUtils.substringAfterLast("/" + job, "/"))) {
+				return root;
+			}
+		}
+		return definition;
+	}
+
+	private static void collectRoleNames(final String folder, final JenkinsFolder definition, final Set<String> result) {
+		MapUtils.emptyIfNull(definition.getRoles()).keySet().forEach(group -> result.add(roleName(group, folder)));
+		CollectionUtils.emptyIfNull(definition.getFolders()).forEach(f -> collectRoleNames(folder + "/" + f.getName(), f, result));
+	}
+
+	/**
+	 * Remove the project roles created for the folder tree at the given path. Only the roles still existing are
+	 * removed. Without Role-based Authorization Strategy (not installed, or not the active authorization mode), there
+	 * is nothing to remove.
+	 *
+	 * @param path       Path of the root folder, segments separated by <code>/</code>.
+	 * @param definition The root folder definition.
+	 */
+	void deleteRoles(final String path, final JenkinsFolder definition) {
+		final var names = new LinkedHashSet<String>();
+		collectRoleNames(path, definition, names);
+		if (names.isEmpty()) {
+			return;
+		}
+		final var request = new CurlRequest(HttpMethod.GET, baseUrl + "role-strategy/strategy/getAllRoles?type=projectRoles", null);
+		request.setSaveResponse(true);
+		if (!probe.process(request) || request.getResponse() == null) {
+			log.info("Jenkins project roles {} are not removed: the Role-based Authorization Strategy is not available", names);
+			return;
+		}
+		final Set<String> existing;
+		try {
+			existing = MAPPER.readValue(request.getResponse(), Map.class).keySet();
+		} catch (final JacksonException e) {
+			log.warn("Unreadable Jenkins project roles, {} are not removed: {}", names, e.getOriginalMessage());
+			return;
+		}
+		final var removed = names.stream().filter(existing::contains).collect(Collectors.joining(","));
+		if (removed.isEmpty()) {
+			return;
+		}
+		final var remove = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/removeRoles",
+				form("type", "projectRoles", "roleNames", removed), "Content-Type:application/x-www-form-urlencoded");
+		if (!curl.process(remove)) {
+			throw new BusinessException("Removing the Jenkins roles {} of folder {} failed.", removed, path);
+		}
+		log.info("Jenkins project roles {} of folder {} removed", removed, path);
 	}
 
 	private void warnRolesSkipped(final String code, final String folder, final Map<String, JenkinsRole> roles) {

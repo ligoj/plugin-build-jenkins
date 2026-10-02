@@ -142,6 +142,93 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.verify(0, WireMock.postRequestedFor(urlPathMatching(".*doDelete")));
 	}
 
+	/**
+	 * Folder mode: the project roles created for the folder tree are removed with the root folder. Only the roles
+	 * still existing in Jenkins are removed, before the folder.
+	 */
+	@Test
+	void deleteRemoteFolderRoles() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER.replace("\"name\":\"child.1\",",
+				"\"name\":\"child.1\",\"roles\":{\"ops\":{\"permissions\":[\"hudson.model.Item.Read\"]},\"qa\":{\"permissions\":[\"hudson.model.Item.Read\"]}},"));
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"dev-ligoj-bootstrap\":[{\"type\":\"GROUP\",\"sid\":\"dev\"}],\"ops-ligoj-bootstrap/child.1\":[],\"dev-other\":[]}")));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles"))
+				.withRequestBody(WireMock.equalTo("type=projectRoles&roleNames=dev-ligoj-bootstrap%2Cops-ligoj-bootstrap%2Fchild.1"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
+		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		httpServer.start();
+
+		resource.delete(subscription, true);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/removeRoles")));
+		httpServer.verify(1, WireMock.postRequestedFor(deletePath));
+	}
+
+	/**
+	 * Folder mode with a job derived from the single top-level folder: the roles are named from this folder.
+	 */
+	@Test
+	void deleteRemoteFolderRolesSingleTopFolder() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		em.createQuery("UPDATE ParameterValue SET data = 'Admin' WHERE parameter.id = 'service:build:jenkins:job' AND subscription.id = :id")
+				.setParameter("id", this.subscription).executeUpdate();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription),
+				"{\"folders\":[{\"name\":\"Admin\",\"roles\":{\"dev\":{\"permissions\":[\"hudson.model.Item.Read\"]}}}]}");
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"dev-Admin\":[]}")));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles"))
+				.withRequestBody(WireMock.equalTo("type=projectRoles&roleNames=dev-Admin")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/job/Admin/doDelete")).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		httpServer.start();
+
+		resource.delete(subscription, true);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/removeRoles")));
+	}
+
+	/**
+	 * Role-based strategy not installed or not the active authorization mode: no role to remove, the folder is
+	 * deleted.
+	 */
+	@Test
+	void deleteRemoteFolderRolesInactive() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
+		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		httpServer.start();
+
+		resource.delete(subscription, true);
+		httpServer.verify(0, postRequestedFor(urlPathMatching("/role-strategy/.*")));
+		httpServer.verify(1, WireMock.postRequestedFor(deletePath));
+	}
+
+	/**
+	 * The role removal fails: the folder is kept, so the unsubscription can be retried.
+	 */
+	@Test
+	void deleteRemoteFolderRolesFailed() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"dev-ligoj-bootstrap\":[]}")));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+		httpServer.start();
+
+		final var exception = Assertions.assertThrows(BusinessException.class, () -> resource.delete(subscription, true));
+		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("Removing the Jenkins roles"), exception.getMessage());
+		httpServer.verify(0, WireMock.postRequestedFor(urlPathMatching(".*doDelete")));
+	}
+
 	@Test
 	void deleteRemoteFailed() throws IOException {
 		addLoginAccess();
