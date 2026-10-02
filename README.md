@@ -174,8 +174,8 @@ with a warning (`jenkins-folder-role-template-missing`), the other roles being c
           "name": "folder6.1",
           "description": "Folder6.1 description",
           "roles": {
-            "projet-1-dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
-            "test": { "template": "developer" }
+            "dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
+            "test": { "template": "corporate-standard" }
           },
           "credentials": [
             {

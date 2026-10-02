@@ -26,7 +26,7 @@ export default {
   'warning.jenkins-folder-roles-skipped': 'Jenkins plug-in "{plugin}" (Role-based Authorization Strategy) is not installed: the {count} role(s) of folder {folder} ({groups}) were not created',
   'warning.jenkins-folder-roles-inactive': 'Jenkins plug-in "{plugin}" (Role-based Authorization Strategy) is installed but is not the selected authorization mode (Manage Jenkins > Security): the {count} role(s) of folder {folder} ({groups}) were not created',
   'warning.jenkins-folder-role-template-missing': 'Jenkins permission template "{template}" does not exist (Manage Jenkins > Manage and Assign Roles): the role {role} of group {group} on folder {folder} was not created',
-  'warning.jenkins-delete-job-missing': 'Jenkins job or folder {job} was already deleted: nothing to delete on Jenkins for it',
+  'warning.jenkins-delete-job-missing': 'Jenkins job or folder {job} was already deleted, it was skipped: the other remote data of the subscription (such as the project roles) were still deleted',
   'warning.jenkins-delete-job-failed': 'Deleting the Jenkins job or folder {job} failed: delete it manually in Jenkins',
   'warning.jenkins-delete-roles-failed': 'Removing the Jenkins roles {roles} of folder {folder} failed: remove them manually (Manage Jenkins > Manage and Assign Roles)',
   'service:build:jenkins:build': 'Build',

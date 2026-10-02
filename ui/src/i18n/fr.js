@@ -22,7 +22,7 @@ export default {
   'warning.jenkins-folder-roles-skipped': 'Le plugin Jenkins "{plugin}" (Role-based Authorization Strategy) n\'est pas installé : les {count} rôle(s) du dossier {folder} ({groups}) n\'ont pas été créés',
   'warning.jenkins-folder-roles-inactive': 'Le plugin Jenkins "{plugin}" (Role-based Authorization Strategy) est installé mais n\'est pas le mode d\'autorisation sélectionné (Administrer Jenkins > Sécurité) : les {count} rôle(s) du dossier {folder} ({groups}) n\'ont pas été créés',
   'warning.jenkins-folder-role-template-missing': 'Le modèle de permissions Jenkins "{template}" n\'existe pas (Administrer Jenkins > Manage and Assign Roles) : le rôle {role} du groupe {group} sur le dossier {folder} n\'a pas été créé',
-  'warning.jenkins-delete-job-missing': 'Le job ou dossier Jenkins {job} était déjà supprimé : rien à supprimer côté Jenkins pour lui',
+  'warning.jenkins-delete-job-missing': 'Le job ou dossier Jenkins {job} était déjà supprimé, il a été ignoré : les autres données distantes de la souscription (comme les rôles de projet) ont tout de même été supprimées',
   'warning.jenkins-delete-job-failed': 'La suppression du job ou dossier Jenkins {job} a échoué : supprimez-le manuellement dans Jenkins',
   'warning.jenkins-delete-roles-failed': 'La suppression des rôles Jenkins {roles} du dossier {folder} a échoué : supprimez-les manuellement (Administrer Jenkins > Manage and Assign Roles)',
   'service:build:jenkins:build': 'Lancer',
