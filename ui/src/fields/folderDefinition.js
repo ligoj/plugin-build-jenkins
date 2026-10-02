@@ -1,7 +1,7 @@
 /**
  * Client-side check of a Jenkins folder definition (the `service:build:jenkins:template-folder` parameter). Mirrors the
  * backend rules so the user gets the message while typing: valid JSON object, a name on every nested folder, an id
- * and a class on every credential, a permissions list on every role. An empty value is valid: the template job is used
+ * and a class on every credential, a permissions list or a permission template on every role. An empty value is valid: the template job is used
  * instead.
  *
  * @param {string|null|undefined} value The typed definition.
@@ -21,11 +21,13 @@ function check(folder, isRoot) {
   for (const c of folder.credentials || []) {
     if (!String(c?.id ?? '').trim() || !String(c?.['stapler-class'] ?? '').trim()) return 'service:build:jenkins:template-folder-invalid-credential'
   }
-  // Roles: keyed by group name, each with a non-empty permissions list
+  // Roles: keyed by group name, each with exactly one of a non-empty permissions list or a permission template name
   const roles = folder.roles
   if (roles != null && (typeof roles !== 'object' || Array.isArray(roles))) return 'service:build:jenkins:template-folder-invalid-role'
   for (const role of Object.values(roles || {})) {
-    if (!Array.isArray(role?.permissions) || !role.permissions.some((perm) => String(perm ?? '').trim())) return 'service:build:jenkins:template-folder-invalid-role'
+    const permissions = Array.isArray(role?.permissions) && role.permissions.some((perm) => String(perm ?? '').trim())
+    const template = !!String(role?.template ?? '').trim()
+    if (permissions === template) return 'service:build:jenkins:template-folder-invalid-role'
   }
   for (const f of folder.folders || []) {
     const error = check(f, false)

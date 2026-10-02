@@ -295,7 +295,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			}
 			final var jenkinsBaseUrl = Strings.CS.appendIfMissing(parameters.get(PARAMETER_URL), "/");
 
-			// Folder mode: remove the project roles of the folder tree first, the folder is kept when it fails
+			// Folder mode: remove the project roles of the folder tree, even when the folder is already deleted
 			final var folderDefinition = StringUtils.trimToNull(parameters.get(PARAMETER_TEMPLATE_FOLDER));
 			if (folderDefinition != null) {
 				final var definition = JenkinsFolderCreator.definitionAt(job, JenkinsFolderCreator.parse(folderDefinition));
@@ -305,18 +305,23 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 				}
 			}
 
-			final var curlRequest = new CurlRequest(HttpMethod.POST,
-					jenkinsBaseUrl + "job/" + toJobPath(job) + "/doDelete", StringUtils.EMPTY);
-			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback())) {
-				if (!curl.process(curlRequest)) {
-					throw new BusinessException("Deleting the job for the subscription {} failed.", subscription);
+			// The deletion issues are not blocking: the remote data may already be partially deleted
+			final var jobUrl = jenkinsBaseUrl + "job/" + toJobPath(job) + "/";
+			try (var curl = new JenkinsCurlProcessor(parameters, new OnlyRedirectHttpResponseCallback());
+					var probe = new JenkinsCurlProcessor(parameters, new QuietHttpResponseCallback())) {
+				if (!probe.process(new CurlRequest(HttpMethod.GET, jobUrl + "api/json?tree=name", null))) {
+					log.info("Jenkins job {} of the subscription {} is already deleted", job, subscription);
+					responseWarnings().warn("jenkins-delete-job-missing", ResponseWarnings.parameters("job", job));
+				} else if (!curl.process(new CurlRequest(HttpMethod.POST, jobUrl + "doDelete", StringUtils.EMPTY))) {
+					log.warn("Deleting the Jenkins job {} of the subscription {} failed", job, subscription);
+					responseWarnings().warn("jenkins-delete-job-failed", ResponseWarnings.parameters("job", job));
 				}
 			}
 		}
 	}
 
 	/**
-	 * Sink of the non-blocking warnings of a subscription creation, reported to the caller.
+	 * Sink of the non-blocking warnings of a subscription creation or deletion, reported to the caller.
 	 */
 	protected ResponseWarnings.Sink responseWarnings() {
 		return ResponseWarnings::add;

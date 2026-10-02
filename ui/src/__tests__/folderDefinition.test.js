@@ -26,6 +26,12 @@ describe('folderDefinitionError', () => {
     expect(folderDefinitionError('{"folders":[{"name":"a","credentials":[{"stapler-class":"x"}]}]}')).toBe('service:build:jenkins:template-folder-invalid-credential')
   })
 
+  it('accepts a permission template instead of a permissions list, never both', () => {
+    expect(folderDefinitionError('{"roles":{"dev":{"template":"developer"}}}')).toBeNull()
+    expect(folderDefinitionError('{"roles":{"dev":{"template":" "}}}')).toBe('service:build:jenkins:template-folder-invalid-role')
+    expect(folderDefinitionError('{"roles":{"dev":{"template":"developer","permissions":["hudson.model.Item.Build"]}}}')).toBe('service:build:jenkins:template-folder-invalid-role')
+  })
+
   it('requires a permissions list on every role, keyed by group', () => {
     expect(folderDefinitionError('{"roles":{"dev":{"permissions":["hudson.model.Item.Build"]}}}')).toBeNull()
     expect(folderDefinitionError('{"roles":{"dev":{}}}')).toBe('service:build:jenkins:template-folder-invalid-role')

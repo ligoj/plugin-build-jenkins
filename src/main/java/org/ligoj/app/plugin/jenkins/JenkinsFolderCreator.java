@@ -21,6 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
@@ -209,7 +210,8 @@ class JenkinsFolderCreator {
 			}
 		});
 		MapUtils.emptyIfNull(folder.getRoles()).forEach((group, role) -> {
-			if (StringUtils.isBlank(group) || role == null || CollectionUtils.emptyIfNull(role.getPermissions()).stream().noneMatch(StringUtils::isNotBlank)) {
+			// Exactly one of a permissions list or a permission template
+			if (StringUtils.isBlank(group) || role == null || hasPermissions(role) == StringUtils.isNotBlank(role.getTemplate())) {
 				throw new ValidationJsonException(JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-role", group);
 			}
 		});
@@ -326,9 +328,24 @@ class JenkinsFolderCreator {
 		roles.forEach((group, role) -> {
 			final var roleName = roleName(group, folder);
 			final var pattern = "(?i)" + folder + (Boolean.FALSE.equals(role.getRecursive()) ? "" : "(/.*)?");
-			final var permissions = role.getPermissions().stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.joining(","));
-			final var add = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/addRole",
-					form("type", "projectRoles", "roleName", roleName, "permissionIds", permissions, "overwrite", "true", "pattern", pattern),
+			final var template = StringUtils.trimToNull(role.getTemplate());
+			final String body;
+			if (template == null) {
+				final var permissions = role.getPermissions().stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.joining(","));
+				body = form("type", "projectRoles", "roleName", roleName, "permissionIds", permissions, "overwrite", "true", "pattern", pattern);
+			} else {
+				// Jenkins rejects a role on an unknown template: skip this role only, and tell the caller
+				final var permissions = getTemplatePermissions(template);
+				if (permissions.isEmpty()) {
+					warnings.warn("jenkins-folder-role-template-missing", ResponseWarnings.parameters("template", template, "role", roleName,
+							"folder", folder, "group", group));
+					return;
+				}
+				// The template permissions are sent too: the parameter is mandatory, and ignored by Jenkins with a template
+				body = form("type", "projectRoles", "roleName", roleName, "permissionIds", permissions, "overwrite", "true", "pattern", pattern,
+						"template", template);
+			}
+			final var add = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/addRole", body,
 					"Content-Type:application/x-www-form-urlencoded");
 			if (!curl.process(add)) {
 				throw new BusinessException("Creating the Jenkins role {} for folder {} failed.", roleName, folder);
@@ -337,6 +354,41 @@ class JenkinsFolderCreator {
 					form("type", "projectRoles", "roleName", roleName, "group", group), "Content-Type:application/x-www-form-urlencoded");
 			if (!curl.process(assign)) {
 				throw new BusinessException("Assigning the Jenkins role {} to group {} failed.", roleName, group);
+			}
+		});
+	}
+
+	private static boolean hasPermissions(final JenkinsRole role) {
+		return CollectionUtils.emptyIfNull(role.getPermissions()).stream().anyMatch(StringUtils::isNotBlank);
+	}
+
+	/**
+	 * Permission identifiers of the existing permission templates, by name: an empty value for a missing template.
+	 */
+	private final Map<String, String> templates = new HashMap<>();
+
+	/**
+	 * Comma-separated permission identifiers of a permission template, read once per creation.
+	 *
+	 * @param name The template name.
+	 * @return The permission identifiers, empty when the template does not exist or cannot be read.
+	 */
+	private String getTemplatePermissions(final String name) {
+		return templates.computeIfAbsent(name, n -> {
+			final var request = new CurlRequest(HttpMethod.GET,
+					baseUrl + "role-strategy/strategy/getTemplate?name=" + UriUtils.encode(n, StandardCharsets.UTF_8), null);
+			request.setSaveResponse(true);
+			if (!probe.process(request) || request.getResponse() == null) {
+				return "";
+			}
+			try {
+				// Unknown template: "{}", otherwise "{"permissionIds":{"<id>":true,...},"isUsed":false}"
+				final var permissions = MAPPER.readTree(request.getResponse()).path("permissionIds");
+				return permissions.properties().stream().filter(e -> e.getValue().asBoolean()).map(Map.Entry::getKey)
+						.collect(Collectors.joining(","));
+			} catch (final JacksonException e) {
+				log.warn("Unreadable Jenkins permission template {}: {}", n, e.getOriginalMessage());
+				return "";
 			}
 		});
 	}
@@ -375,7 +427,7 @@ class JenkinsFolderCreator {
 	/**
 	 * Remove the project roles created for the folder tree at the given path. Only the roles still existing are
 	 * removed. Without Role-based Authorization Strategy (not installed, or not the active authorization mode), there
-	 * is nothing to remove.
+	 * is nothing to remove. A failed removal is reported as a warning, not an error.
 	 *
 	 * @param path       Path of the root folder, segments separated by <code>/</code>.
 	 * @param definition The root folder definition.
@@ -405,10 +457,12 @@ class JenkinsFolderCreator {
 		}
 		final var remove = new CurlRequest(HttpMethod.POST, baseUrl + "role-strategy/strategy/removeRoles",
 				form("type", "projectRoles", "roleNames", removed), "Content-Type:application/x-www-form-urlencoded");
-		if (!curl.process(remove)) {
-			throw new BusinessException("Removing the Jenkins roles {} of folder {} failed.", removed, path);
+		if (curl.process(remove)) {
+			log.info("Jenkins project roles {} of folder {} removed", removed, path);
+		} else {
+			// Not blocking: the deletion goes on, the caller is told what remains
+			warnings.warn("jenkins-delete-roles-failed", ResponseWarnings.parameters("roles", removed, "folder", path));
 		}
-		log.info("Jenkins project roles {} of folder {} removed", removed, path);
 	}
 
 	private void warnRolesSkipped(final String code, final String folder, final Map<String, JenkinsRole> roles) {

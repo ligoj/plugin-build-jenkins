@@ -33,8 +33,11 @@ A subscription in create mode creates something on Jenkins, then links the proje
 the parameters: a template job (`service:build:jenkins:template-job`) or a folder definition
 (`service:build:jenkins:template-folder`). Deleting the subscription with the "remote data" option deletes the created
 job, or the created root folder with its whole tree. The project roles created for the folders (see `roles`) are
-removed first, when they still exist and the Role-based Authorization Strategy is the active authorization mode; if
-their removal fails, the folder is kept and the unsubscription can be retried.
+removed first, when they still exist and the Role-based Authorization Strategy is the active authorization mode. The
+deletion tolerates remote data already partially deleted: a job or folder already gone is skipped, and every deletion
+issue (job or folder missing, its deletion or the role removal failing) is reported as a warning
+(`jenkins-delete-job-missing`, `jenkins-delete-job-failed`, `jenkins-delete-roles-failed`) without blocking the
+unsubscription.
 
 ## Template job
 
@@ -112,13 +115,16 @@ by the credentials are checked before anything is created: `credentials`, plus t
 from its package (`plain-credentials`, `ssh-credentials`, `aws-credentials`, `docker-commons`, ...) or declared with
 `"plugin": "<short name>"`.
 
-A folder may also declare `roles`, keyed by the group name: each entry lists the Jenkins permission identifiers
-granted to that group on the folder (and its sub-folders and jobs, unless `"recursive": false`). Like the Ligoj CLI,
+A folder may also declare `roles`, keyed by the group name: each entry grants to that group on the folder (and its
+sub-folders and jobs, unless `"recursive": false`) either the Jenkins permission identifiers listed in `permissions`,
+or the permissions of a permission template referenced by `template` (Manage Jenkins > Manage and Assign Roles >
+Permission Templates; the role then follows the template changes). Exactly one of them is required. Like the Ligoj CLI,
 a project role named `<group>-<folder path>` is created (or overwritten) through the Role-based Authorization
 Strategy plug-in, then assigned to the group. When that plug-in (`role-strategy`) is not installed, or is installed
 but not selected as the authorization mode (Manage Jenkins > Security > Authorization), the roles are skipped and the
 rest is created: the warning is returned to the caller (`X-Ligoj-Warning` header, shown as a toast in the UI and
-printed by the CLI) and logged.
+printed by the CLI) and logged. Likewise, a role referencing a permission template that does not exist is skipped
+with a warning (`jenkins-folder-role-template-missing`), the other roles being created.
 
 ```json
 {
@@ -169,7 +175,7 @@ printed by the CLI) and logged.
           "description": "Folder6.1 description",
           "roles": {
             "projet-1-dev": { "permissions": ["hudson.model.Item.Build", "hudson.model.Run.Delete", "hudson.model.Run.Update"], "recursive": false },
-            "test": { "permissions": ["hudson.model.Item.Build", "hudson.model.Item.Read"] }
+            "test": { "template": "developer" }
           },
           "credentials": [
             {
@@ -192,6 +198,7 @@ printed by the CLI) and logged.
 ```
 
 With an empty job, this definition creates `folder6` (stored as the subscription job) with its three credentials,
-then `folder6/folder6.1` with its AWS credential and the project roles `dev-folder6/folder6.1` (on the folder only)
-and `test-folder6/folder6.1` (folder and its content) assigned to the `dev` and `test` groups, then `folder6/folder6.2`. A folder may also set
+then `folder6/folder6.1` with its AWS credential and the project roles `projet-1-dev-folder6/folder6.1` (listed
+permissions, on the folder only) and `test-folder6/folder6.1` (permissions of the `developer` template, folder and its
+content) assigned to the `projet-1-dev` and `test` groups, then `folder6/folder6.2`. A folder may also set
 `"mode": "jenkins.branch.OrganizationFolder"` to create an organization folder instead of a plain one.

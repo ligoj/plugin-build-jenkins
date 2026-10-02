@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -88,6 +89,26 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		// thrown and this test will fail.
 	}
 
+	private List<String> deleteWithWarnings() {
+		final var warnings = new ArrayList<String>();
+		final var resource = new JenkinsPluginResource() {
+			@Override
+			protected ResponseWarnings.Sink responseWarnings() {
+				return (code, parameters) -> warnings.add(code + " " + new TreeMap<>(parameters));
+			}
+		};
+		applicationContext.getAutowireCapableBeanFactory().autowireBean(resource);
+		resource.delete(subscription, true);
+		return warnings;
+	}
+
+	/**
+	 * The job (or root folder) to delete still exists on Jenkins.
+	 */
+	private void stubJobExists(final String path) {
+		httpServer.stubFor(get(urlEqualTo(path + "/api/json?tree=name")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+	}
+
 	@Test
 	void deleteRemote() throws IOException {
 		addLoginAccess();
@@ -97,6 +118,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
 		httpServer.stubFor(post(deletePath).willReturn(
 				aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		stubJobExists("/job/ligoj-bootstrap");
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -119,6 +141,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		cacheManager.getCache("subscription-parameters").clear();
 		final var deletePath = urlEqualTo("/job/team/job/Admin/doDelete");
 		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		stubJobExists("/job/team/job/Admin");
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -160,6 +183,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
 		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		stubJobExists("/job/ligoj-bootstrap");
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -184,6 +208,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles"))
 				.withRequestBody(WireMock.equalTo("type=projectRoles&roleNames=dev-Admin")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
 		httpServer.stubFor(post(urlEqualTo("/job/Admin/doDelete")).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		stubJobExists("/job/Admin");
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -203,6 +228,7 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
 		httpServer.stubFor(post(deletePath).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
+		stubJobExists("/job/ligoj-bootstrap");
 		httpServer.start();
 
 		resource.delete(subscription, true);
@@ -222,10 +248,31 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
 				.withBody("{\"dev-ligoj-bootstrap\":[]}")));
 		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+		stubJobExists("/job/ligoj-bootstrap");
+		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/doDelete")).willReturn(aResponse().withHeader("location", "location").withStatus(HttpStatus.SC_MOVED_TEMPORARILY)));
 		httpServer.start();
 
-		final var exception = Assertions.assertThrows(BusinessException.class, () -> resource.delete(subscription, true));
-		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("Removing the Jenkins roles"), exception.getMessage());
+		Assertions.assertEquals(List.of("jenkins-delete-roles-failed {folder=ligoj-bootstrap, roles=dev-ligoj-bootstrap}"), deleteWithWarnings());
+		httpServer.verify(1, WireMock.postRequestedFor(urlEqualTo("/job/ligoj-bootstrap/doDelete")));
+	}
+
+	/**
+	 * The root folder was already deleted on Jenkins: its roles are still removed, and the caller is told.
+	 */
+	@Test
+	void deleteRemoteFolderMissing() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
+		cacheManager.getCache("subscription-parameters").clear();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getAllRoles?type=projectRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"dev-ligoj-bootstrap\":[]}")));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/removeRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(get(urlEqualTo("/job/ligoj-bootstrap/api/json?tree=name")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.start();
+
+		Assertions.assertEquals(List.of("jenkins-delete-job-missing {job=ligoj-bootstrap}"), deleteWithWarnings());
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/removeRoles")));
 		httpServer.verify(0, WireMock.postRequestedFor(urlPathMatching(".*doDelete")));
 	}
 
@@ -233,13 +280,11 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	void deleteRemoteFailed() throws IOException {
 		addLoginAccess();
 		addAdminAccess();
-
-		// post delete
-		final var deletePath = urlEqualTo("/job/ligoj-bootstrap/doDelete");
-		httpServer.stubFor(post(deletePath).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		stubJobExists("/job/ligoj-bootstrap");
+		httpServer.stubFor(post(urlEqualTo("/job/ligoj-bootstrap/doDelete")).willReturn(aResponse().withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
 		httpServer.start();
 
-		Assertions.assertThrows(BusinessException.class, () -> resource.delete(subscription, true));
+		Assertions.assertEquals(List.of("jenkins-delete-job-failed {job=ligoj-bootstrap}"), deleteWithWarnings());
 	}
 
 	@Test
@@ -819,6 +864,87 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER);
 		final var exception = Assertions.assertThrows(BusinessException.class, () -> this.resource.create(this.subscription));
 		Assertions.assertTrue(String.valueOf(exception.getMessage()).contains("Creating the Jenkins role"), exception.getMessage());
+	}
+
+	/**
+	 * Folder definition with a role referencing a permission template instead of a permissions list.
+	 */
+	private static final String FOLDER_TEMPLATE = "{\"roles\":{\"dev\":{\"template\":\"developer\",\"recursive\":false}}}";
+
+	private void stubRoleStrategy() {
+		httpServer.stubFor(get(urlPathEqualTo("/pluginManager/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"plugins\":[{\"shortName\":\"role-strategy\",\"active\":true}]}")));
+		httpServer.stubFor(get(urlPathEqualTo("/role-strategy/strategy/getAllRoles")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+	}
+
+	private List<String> createWithWarnings() {
+		final var warnings = new ArrayList<String>();
+		final var resource = new JenkinsPluginResource() {
+			@Override
+			protected ResponseWarnings.Sink responseWarnings() {
+				return (code, parameters) -> warnings.add(code + " " + new TreeMap<>(parameters));
+			}
+		};
+		applicationContext.getAutowireCapableBeanFactory().autowireBean(resource);
+		resource.create(this.subscription);
+		return warnings;
+	}
+
+	/**
+	 * The role takes its permissions from an existing permission template.
+	 */
+	@Test
+	void createFolderRoleTemplate() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		stubRoleStrategy();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getTemplate?name=developer")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("{\"permissionIds\":{\"hudson.model.Item.Build\":true,\"hudson.model.Item.Read\":true},\"isUsed\":false}")));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/addRole"))
+				.withRequestBody(WireMock.equalTo("type=projectRoles&roleName=dev-ligoj-bootstrap&permissionIds=hudson.model.Item.Build%2Chudson.model.Item.Read"
+						+ "&overwrite=true&pattern=%28%3Fi%29ligoj-bootstrap&template=developer"))
+				.willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.stubFor(post(urlEqualTo("/role-strategy/strategy/assignGroupRole")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER_TEMPLATE);
+
+		Assertions.assertEquals(List.of(), createWithWarnings());
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/addRole")));
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/role-strategy/strategy/assignGroupRole")));
+	}
+
+	/**
+	 * The permission template does not exist: this role is skipped with a warning, the rest is created.
+	 */
+	@Test
+	void createFolderRoleTemplateMissing() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		stubRoleStrategy();
+		httpServer.stubFor(get(urlEqualTo("/role-strategy/strategy/getTemplate?name=developer")).willReturn(aResponse().withStatus(HttpStatus.SC_OK).withBody("{}")));
+		httpServer.start();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), FOLDER_TEMPLATE);
+
+		Assertions.assertEquals(List.of("jenkins-folder-role-template-missing {folder=ligoj-bootstrap, group=dev, role=dev-ligoj-bootstrap, template=developer}"),
+				createWithWarnings());
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=ligoj-bootstrap")));
+		httpServer.verify(0, postRequestedFor(urlPathMatching("/role-strategy/.*")));
+	}
+
+	/**
+	 * A role needs exactly one of a permissions list or a permission template.
+	 */
+	@Test
+	void createFolderInvalidRoleBoth() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.start();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription),
+				"{\"roles\":{\"dev\":{\"template\":\"developer\",\"permissions\":[\"hudson.model.Item.Build\"]}}}");
+		MatcherUtil.assertThrows(Assertions.assertThrows(ValidationJsonException.class, () -> this.resource.create(this.subscription)),
+				JenkinsPluginResource.PARAMETER_TEMPLATE_FOLDER, "jenkins-folder-role");
 	}
 
 	@Test
