@@ -1099,6 +1099,23 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 	}
 
 	/**
+	 * The folder definition is trimmed before being validated and parsed.
+	 */
+	@Test
+	void createFolderTrimmed() throws IOException {
+		addLoginAccess();
+		addAdminAccess();
+		httpServer.stubFor(get(urlPathMatching("/job/.*/api/json")).willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
+		httpServer.stubFor(post(urlPathMatching(".*createItem.*")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)));
+		httpServer.start();
+		deleteJobParameter();
+		createParameterValueFolder(em.find(Subscription.class, this.subscription), " \n\t{\"name\":\"Admin\"}\r\n  ");
+		this.resource.create(this.subscription);
+		httpServer.verify(1, postRequestedFor(urlEqualTo("/createItem?name=Admin")));
+		Assertions.assertEquals("Admin", storedJob());
+	}
+
+	/**
 	 * Folder mode without a job nor a root name: a single top-level folder is the root.
 	 */
 	@Test

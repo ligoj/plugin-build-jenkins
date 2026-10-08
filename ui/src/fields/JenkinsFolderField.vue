@@ -14,6 +14,7 @@
     rows="6"
     auto-grow
     class="jk-folder"
+    @blur="trimValue"
     @update:model-value="(v) => emit('update:modelValue', v ?? '')"
   />
 </template>
@@ -34,6 +35,12 @@ const props = defineProps({
   project: { type: Object, default: null },
 })
 const emit = defineEmits(['update:modelValue'])
+
+/** Saved trimmed: trim when the field loses the focus, which the submit click triggers first (not while typing). */
+function trimValue() {
+  const value = props.modelValue
+  if (typeof value === 'string' && value.trim() !== value) emit('update:modelValue', value.trim())
+}
 const { t } = useI18nStore()
 
 const PLACEHOLDER = '{\n  "description": "…",\n  "credentials": [{ "id": "…", "stapler-class": "…", "attributes": {} }],\n  "folders": [{ "name": "…" }]\n}'
