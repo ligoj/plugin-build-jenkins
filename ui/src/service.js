@@ -29,6 +29,7 @@ import { VBtn, VIcon, renderServiceLink, renderDetailsChip, useApi, useI18nStore
 import JenkinsJobField from './fields/JenkinsJobField.vue'
 import JenkinsTemplateJobField from './fields/JenkinsTemplateJobField.vue'
 import JenkinsFolderField from './fields/JenkinsFolderField.vue'
+import { folderDefinitionSummary } from './fields/folderDefinition.js'
 
 const PARAM_URL = 'service:build:jenkins:url'
 const PARAM_JOB = 'service:build:jenkins:job'
@@ -300,4 +301,12 @@ function parameterField({ parameter, isNode } = {}) {
   return PARAMETER_FIELDS[parameter?.id] || null
 }
 
-export default { renderFeatures, renderDetailsKey, renderDetailsFeatures, parameterField }
+/**
+ * Subscription status tooltip: the folder definition as what it creates instead of the raw JSON. Null for the other
+ * parameters, shown as they are.
+ */
+function parameterSummary({ parameter, value } = {}) {
+  return parameter === 'service:build:jenkins:template-folder' ? folderDefinitionSummary(value, useI18nStore().t) : null
+}
+
+export default { renderFeatures, renderDetailsKey, renderDetailsFeatures, parameterField, parameterSummary }

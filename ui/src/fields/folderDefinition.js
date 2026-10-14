@@ -35,3 +35,31 @@ function check(folder, isRoot) {
   }
   return null
 }
+
+/**
+ * Short text of a folder definition, for the subscription status tooltip: the folders, roles and credentials it
+ * creates, counted through the whole tree ("3 folders · 3 roles · 3 credentials"), the empty counts left out.
+ *
+ * @param {string|null|undefined} value The stored definition.
+ * @param {Function} t The i18n translation function.
+ * @returns {string|null} The summary, or null for a blank or unreadable value.
+ */
+export function folderDefinitionSummary(value, t) {
+  const text = String(value ?? '').trim()
+  let root
+  try { root = text ? JSON.parse(text) : null } catch { return null }
+  if (!root || typeof root !== 'object' || Array.isArray(root)) return null
+  const counts = { folders: 0, roles: 0, credentials: 0 }
+  const visit = (folder) => {
+    counts.roles += Object.keys(folder?.roles || {}).length
+    counts.credentials += (folder?.credentials || []).length
+    for (const f of folder?.folders || []) {
+      counts.folders++
+      visit(f)
+    }
+  }
+  visit(root)
+  const parts = Object.entries(counts).filter(([, n]) => n)
+    .map(([kind, n]) => t(`service:build:jenkins:template-folder-${kind}`, { count: n }, n))
+  return parts.length ? parts.join(' · ') : t('service:build:jenkins:template-folder-empty')
+}
