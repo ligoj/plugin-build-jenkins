@@ -97,7 +97,7 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 	public static final String PARAMETER_TEMPLATE_FOLDER = KEY + ":template-folder";
 
 	/**
-	 * Web site URL
+	 * Website URL
 	 */
 	public static final String PARAMETER_URL = KEY + ":url";
 
