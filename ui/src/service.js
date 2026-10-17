@@ -137,7 +137,7 @@ function startPolling(subscription, api) {
     let job
     let refreshed = false
     try {
-      const resp = await api.get(`rest/subscription/status/${encodeURIComponent(id)}/refresh`, { silent: true, raw: true })
+      const resp = await api.post(`rest/subscription/status/${encodeURIComponent(id)}/refresh`, null, { silent: true, raw: true })
       if (resp.ok) {
         const d = await resp.json()
         if (d && typeof d === 'object') {

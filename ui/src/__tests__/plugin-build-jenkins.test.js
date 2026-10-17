@@ -244,10 +244,9 @@ describe('plugin-build-jenkins contract', () => {
     vi.useFakeTimers()
     pluginBuildJenkinsDef.install()
     const orig = global.fetch
-    global.fetch = vi.fn((url, opts) => {
-      const method = opts?.method || 'GET'
-      // The build trigger (POST) succeeds…
-      if (method === 'POST') return Promise.resolve({ ok: true, status: 204, headers: { get: () => null } })
+    global.fetch = vi.fn((url) => {
+      // The build trigger succeeds…
+      if (!String(url).includes('rest/subscription/status/')) return Promise.resolve({ ok: true, status: 204, headers: { get: () => null } })
       // …and every status refresh reports the job is NOT building.
       return Promise.resolve({
         ok: true,
@@ -269,6 +268,10 @@ describe('plugin-build-jenkins contract', () => {
       const after = pluginBuildJenkinsDef.feature('renderFeatures', sub)
       expect(after[1].props.disabled).toBeFalsy()
       expect(vi.getTimerCount()).toBe(0)
+      // The refresh calls the tool and stores the status: POST, the GET twin is deprecated
+      const refreshes = global.fetch.mock.calls.filter(([u]) => String(u).includes('rest/subscription/status/555/refresh'))
+      expect(refreshes.length).toBeGreaterThan(0)
+      expect(refreshes.map(([, o]) => o?.method)).toEqual(refreshes.map(() => 'POST'))
     } finally {
       global.fetch = orig
       vi.useRealTimers()
