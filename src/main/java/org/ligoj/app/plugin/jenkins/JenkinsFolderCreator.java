@@ -140,12 +140,6 @@ class JenkinsFolderCreator {
 	}
 
 	/**
-	 * Parse a folder definition.
-	 *
-	 * @param json The JSON definition of the root folder.
-	 * @return The parsed definition.
-	 */
-	/**
 	 * Jenkins plug-in providing the project roles.
 	 */
 	static final String ROLE_STRATEGY_PLUGIN = "role-strategy";
@@ -185,6 +179,12 @@ class JenkinsFolderCreator {
 		}
 	}
 
+	/**
+	 * Parse a folder definition.
+	 *
+	 * @param json The JSON definition of the root folder.
+	 * @return The parsed definition.
+	 */
 	static JenkinsFolder parse(final String json) {
 		try {
 			final var folder = MAPPER.readValue(json, JenkinsFolder.class);
