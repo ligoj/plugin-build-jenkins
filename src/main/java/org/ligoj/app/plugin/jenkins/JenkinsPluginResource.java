@@ -447,15 +447,16 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 
 	@Override
 	public String getLastVersion() {
-		// Get the download index from the default repository
-		return getLastVersion(publicServer + "/war/");
+		// Get the download index of the LTS line from the default repository: most servers run it, the weekly line
+		// would flag them all as outdated
+		return getLastVersion(publicServer + "/war-stable/");
 	}
 
 	/**
 	 * Return the last version available for Jenkins for the given repository URL.
 	 *
 	 * @param repo The path of the index containing the available versions.
-	 * @return The last Jenkins version.
+	 * @return The last Jenkins version, by number: "2.587" is newer than "2.99".
 	 */
 	protected String getLastVersion(final String repo) {
 		// Get the download index
@@ -463,18 +464,16 @@ public class JenkinsPluginResource extends AbstractToolPluginResource implements
 			final var downloadPage = ObjectUtils.getIfNull(curl.get(repo), "");
 
 			// Find the last download link
-			final var matcher = Pattern.compile("href=\"([\\d.]+)/\"").matcher(downloadPage);
-			String lastVersion = null;
-			while (matcher.find()) {
-				final var cVersion = matcher.group(1);
-				if (lastVersion == null || cVersion.compareTo(lastVersion) > 0) {
-					lastVersion = cVersion;
-				}
-			}
-
-			// Return the last read version
-			return lastVersion;
+			return Pattern.compile("href=\"(\\d+(?:\\.\\d+)*)/\"").matcher(downloadPage).results().map(r -> r.group(1))
+					.max(Comparator.comparing(JenkinsPluginResource::toNumbers, Arrays::compare)).orElse(null);
 		}
+	}
+
+	/**
+	 * Return the numbers of a dotted version.
+	 */
+	private static long[] toNumbers(final String version) {
+		return Arrays.stream(version.split("\\.")).mapToLong(Long::parseLong).toArray();
 	}
 
 	/**

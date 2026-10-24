@@ -26,6 +26,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -300,11 +301,40 @@ class JenkinsPluginResourceTest extends AbstractServerTest {
 		Assertions.assertEquals("1.574", version);
 	}
 
+	/**
+	 * The latest version is the one of the LTS line: most Jenkins servers run it, and the weekly line would flag them
+	 * all as outdated.
+	 */
 	@Test
 	void getLastVersion() {
-		final var lastVersion = resource.getLastVersion();
-		Assertions.assertNotNull(lastVersion);
-		Assertions.assertTrue(lastVersion.compareTo("1.576") > 0);
+		httpServer.stubFor(get(urlEqualTo("/war-stable/")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("<a href=\"2.479.3/\">2.479.3/</a><a href=\"2.580.1/\">2.580.1/</a>")));
+		httpServer.stubFor(get(urlEqualTo("/war/")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("<a href=\"2.587/\">2.587/</a>")));
+		httpServer.start();
+		final var jenkins = new JenkinsPluginResource();
+		ReflectionTestUtils.setField(jenkins, "publicServer", "http://localhost:" + MOCK_PORT);
+		Assertions.assertEquals("2.580.1", jenkins.getLastVersion());
+	}
+
+	/**
+	 * Versions are compared by their numbers, not as text: "2.99" is older than "2.587".
+	 */
+	@Test
+	void getLastVersionNumeric() {
+		httpServer.stubFor(get(urlEqualTo("/war/")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("<a href=\"2.99/\">2.99/</a><a href=\"2.587/\">2.587/</a><a href=\"2.100/\">2.100/</a>"
+						+ "<a href=\"latest/\">latest/</a><a href=\"../\">../</a>")));
+		httpServer.start();
+		Assertions.assertEquals("2.587", resource.getLastVersion("http://localhost:" + MOCK_PORT + "/war/"));
+	}
+
+	@Test
+	void getLastVersionNone() {
+		httpServer.stubFor(get(urlEqualTo("/war/")).willReturn(aResponse().withStatus(HttpStatus.SC_OK)
+				.withBody("<a href=\"latest/\">latest/</a>")));
+		httpServer.start();
+		Assertions.assertNull(resource.getLastVersion("http://localhost:" + MOCK_PORT + "/war/"));
 	}
 
 	@Test
